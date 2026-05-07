@@ -9,10 +9,10 @@ export function Sidebar({ businessName, isSubscribed }: { businessName: string, 
   const pathname = usePathname();
 
   const navItems = [
-    { name: 'Analytics', href: '/dashboard', icon: LayoutDashboard, protected: true },
-    { name: 'Menu Context', href: '/dashboard/settings', icon: Settings, protected: true },
+    { name: 'Growth Overview', href: '/dashboard', icon: LayoutDashboard, protected: true },
+    { name: 'Review Context', href: '/dashboard/settings', icon: Settings, protected: true },
     { name: 'QR Codes', href: '/dashboard/qr', icon: QrCode, protected: true },
-    { name: 'Billing', href: '/dashboard/billing', icon: CreditCard, protected: false },
+    { name: 'Billing & Plan', href: '/dashboard/billing', icon: CreditCard, protected: false },
   ];
 
   return (
@@ -27,7 +27,7 @@ export function Sidebar({ businessName, isSubscribed }: { businessName: string, 
       </div>
       
       <div className="p-4 flex-1">
-        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-3">Menu</div>
+        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-3">Main Menu</div>
         <nav className="space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href;

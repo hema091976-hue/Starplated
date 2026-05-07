@@ -1,159 +1,232 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+
+// Extend Vercel serverless function timeout to 30s (default is 10s)
+export const maxDuration = 30;
+
+// Admin client — bypasses RLS for public (unauthenticated) API calls
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+/** Robust JSON array extractor — handles markdown fences, extra text, etc. */
+function extractJsonArray(text: string): any[] | null {
+  const cleaned = text.replace(/```(?:json)?/gi, '').replace(/```/g, '').trim();
+
+  try {
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+  } catch (_) {}
+
+  const match = cleaned.match(/\[[\s\S]*?\]/);
+  if (match) {
+    try {
+      const parsed = JSON.parse(match[0]);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch (_) {}
+  }
+
+  return null;
+}
 
 export async function POST(request: Request) {
   try {
-    const { rating, restaurantId } = await request.json();
+    const { rating, restaurantId, selectedTags } = await request.json();
 
     if (!rating || rating < 1 || rating > 5) {
       return NextResponse.json({ error: 'Valid rating (1-5) is required' }, { status: 400 });
     }
 
-    const supabase = await createClient();
-
-    // Fetch restaurant context for AI
-    const { data: restaurant } = await supabase
-      .from('restaurants')
-      .select('business_name, ambiance_context, menu_urls')
-      .eq('id', restaurantId)
-      .single();
-
-    const genAI = process.env.GOOGLE_AI_KEY ? new GoogleGenerativeAI(process.env.GOOGLE_AI_KEY) : null;
-    let options = [];
-
-    if (!restaurant) {
-      if (restaurantId === 'demo-restaurant') {
-        options = generateFallbackOptions({ business_name: 'The Demo Bistro' }, rating);
-      } else {
-        return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
-      }
-    } else if (genAI) {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      
-      const prompt = `
-        You are an AI that writes authentic-sounding Google reviews for a restaurant called "${restaurant.business_name}".
-        
-        Context about the restaurant's vibe:
-        "${restaurant.ambiance_context || 'A great local dining spot.'}"
-        
-        The user rated the restaurant ${rating} out of 5 stars.
-        
-        Task: 
-        1. If I have provided images of the menu, look at them carefully. Identify 2-3 signature dishes, drinks, or unique menu items.
-        2. Generate 3 distinct reviews matching the ${rating}-star rating.
-        
-        Review 1 (The Foodie): Write like a passionate food lover. Mention specific dishes you see on the menu. Use natural, conversational phrasing (e.g., "Oh my god, you have to try the...", "I'm still thinking about that sauce"). 
-        Review 2 (The Vibe): Focus on the personal experience—the lighting, the music, the friendly service. Mention how it made you feel (e.g., "Perfect for a date night", "Such a cozy neighborhood gem").
-        Review 3 (The Local): Write it like a short, punchy recommendation from a regular. Use casual language and personal touches.
-        
-        IMPORTANT: Every review you generate MUST be completely unique and different from anything you've written before. Vary the vocabulary, sentence structure, and specific personal anecdotes significantly. Never use the same opening or closing twice.
-        
-        Return ONLY a JSON array of objects with "type" and "text" fields.
-        Example format: [{"type": "The Foodie", "text": "..."}, {"type": "Quick & Easy", "text": "..."}, {"type": "Ambiance Fan", "text": "..."}]
-      `;
-
-      try {
-        const parts: any[] = [{ text: prompt }];
-
-        if (restaurant.menu_urls && restaurant.menu_urls.length > 0) {
-          const imageUrls = restaurant.menu_urls.slice(0, 2);
-          for (const url of imageUrls) {
-            try {
-              const imageResp = await fetch(url);
-              const buffer = await imageResp.arrayBuffer();
-              parts.push({
-                inlineData: {
-                  data: Buffer.from(buffer).toString('base64'),
-                  mimeType: "image/jpeg"
-                }
-              });
-            } catch (err) {
-              console.error('Failed to fetch menu image for AI:', url);
-            }
-          }
-        }
-
-        const result = await model.generateContent({
-          contents: [{ role: 'user', parts }],
-          generationConfig: {
-            temperature: 0.9,
-            topP: 0.95,
-            topK: 40,
-            maxOutputTokens: 1024,
-          }
-        });
-        const text = result.response.text();
-        const cleanedText = text.replace(/```json|```/g, '').trim();
-        options = JSON.parse(cleanedText);
-        
-        // Ensure we always have exactly 3 options
-        if (!Array.isArray(options) || options.length === 0) {
-          options = generateFallbackOptions(restaurant, rating);
-        }
-      } catch (e) {
-        console.error('Gemini Vision error:', e);
-        options = generateFallbackOptions(restaurant, rating);
-      }
-    } else {
-      options = generateFallbackOptions(restaurant, rating);
-    }
-
-    // Log the generation event
-    if (restaurantId !== 'demo-restaurant' && restaurantId.length === 36) {
-      await supabase.from('analytics_events').insert({
-        restaurant_id: restaurantId,
-        event_type: 'review_generated',
-        rating: rating
+    // ── Demo shortcut ─────────────────────────────────────────────────────────
+    if (restaurantId === 'demo-restaurant') {
+      return NextResponse.json({
+        options: generateFallbackOptions(
+          {
+            business_name: 'The Demo Bistro',
+            ambiance_context: 'A cozy modern bistro with artisanal coffee, homemade pastries and all-day brunch.',
+            menu_context: 'Avocado toast, eggs benedict, flat white coffee, blueberry pancakes, smashed burger',
+          },
+          rating
+        ),
       });
     }
 
-    return NextResponse.json({ options });
-  } catch (error) {
-    console.error('Generation error:', error);
-    return NextResponse.json({ error: 'Failed to generate review' }, { status: 500 });
+    // ── Fetch restaurant with ALL context fields ───────────────────────────────
+    const { data: restaurant, error: dbError } = await supabaseAdmin
+      .from('restaurants')
+      .select('business_name, ambiance_context, menu_context, menu_urls, google_place_id')
+      .eq('id', restaurantId)
+      .single();
+
+    if (dbError || !restaurant) {
+      console.error('Restaurant fetch error:', dbError);
+      return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
+    }
+
+    const apiKey = process.env.GOOGLE_AI_KEY;
+
+    if (!apiKey) {
+      console.warn('GOOGLE_AI_KEY not configured — returning smart fallback reviews');
+      logEvent(restaurantId, rating);
+      return NextResponse.json({ options: generateFallbackOptions(restaurant, rating) });
+    }
+
+    // ── Build rich context for Gemini ─────────────────────────────────────────
+    const restaurantName = (restaurant.business_name || 'this restaurant').trim();
+    const ambianceText   = restaurant.ambiance_context?.trim() || '';
+    const menuText       = restaurant.menu_context?.trim() || '';
+
+    // Combine all text context
+    const contextParts: string[] = [];
+    if (ambianceText) contextParts.push(`Ambiance & vibe: ${ambianceText}`);
+    if (menuText)     contextParts.push(`Menu highlights & dishes: ${menuText}`);
+    const fullContext = contextParts.length > 0
+      ? contextParts.join('\n\n')
+      : 'A welcoming local restaurant known for quality food and friendly service.';
+
+    const prompt = `You are generating realistic customer restaurant reviews for Google Reviews.
+The review must match the exact sentiment of the provided star rating.
+
+Rules:
+- 5 stars = highly positive and enthusiastic
+- 4 stars = positive with minor imperfections
+- 3 stars = mixed or average experience
+- 2 stars = mostly negative with some acceptable parts
+- 1 star = strongly negative and dissatisfied
+
+Never make a 1-star review sound positive.
+Never make a 5-star review sound negative.
+
+Reviews should:
+- sound natural and human
+- vary sentence structure
+- avoid sounding robotic or fake
+- be concise (2–5 sentences)
+- reference food, service, ambience, or experience naturally
+- avoid excessive exaggeration
+- DO NOT use emojis.
+- DO NOT use quotation marks.
+
+RESTAURANT DATA:
+Restaurant Name: ${restaurantName}
+Restaurant Description: ${fullContext}
+Star Rating: ${rating}
+Selected Tags: ${selectedTags?.join(', ') || 'none'}
+
+INSTRUCTIONS:
+Write exactly 3 distinct Google reviews that accurately reflect the sentiment of the rating. 
+Each should have a different persona:
+1. "The Foodie": focused on tastes and specific dishes
+2. "The Vibe": focused on atmosphere and service
+3. "The Local": short, punchy, and casual
+
+Return ONLY a raw JSON array with no markdown, no explanation:
+[{"type":"The Foodie","text":"..."},{"type":"The Vibe","text":"..."},{"type":"The Local","text":"..."}]`;
+
+    // ── Call Gemini (text-only — fast and reliable) ────────────────────────────
+    try {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      // Using 'gemini-flash-latest' as it's guaranteed to be available in 2026
+      const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 1.0,
+          topP: 0.95,
+          topK: 64,
+          maxOutputTokens: 1400,
+        },
+      });
+
+      const responseText = result.response.text();
+      console.log('Gemini raw response (first 300 chars):', responseText.slice(0, 300));
+
+      const parsed = extractJsonArray(responseText);
+
+      if (parsed && parsed.length >= 3) {
+        logEvent(restaurantId, rating);
+        return NextResponse.json({ options: parsed });
+      }
+
+      console.warn('Gemini did not return a valid JSON array — falling back to templates');
+      logEvent(restaurantId, rating);
+      return NextResponse.json({ options: generateFallbackOptions(restaurant, rating) });
+
+    } catch (geminiError: any) {
+      console.error('Gemini error:', geminiError?.message ?? geminiError);
+      logEvent(restaurantId, rating);
+      return NextResponse.json({ options: generateFallbackOptions(restaurant, rating) });
+    }
+
+  } catch (outerError: any) {
+    console.error('generate-review fatal error:', outerError?.message ?? outerError);
+    return NextResponse.json({ error: 'Failed to generate review. Please try again.' }, { status: 500 });
   }
 }
 
+/** Fire-and-forget analytics — errors are silently swallowed */
+async function logEvent(restaurantId: string, rating: number) {
+  try {
+    await supabaseAdmin.from('analytics_events').insert({
+      restaurant_id: restaurantId,
+      event_type: 'review_generated',
+      rating,
+    });
+  } catch (_) { /* non-critical */ }
+}
+
+/** Context-aware template fallbacks — used when Gemini is unavailable */
 function generateFallbackOptions(restaurant: any, rating: number) {
-  const name = restaurant.business_name || 'this restaurant';
-  
-  if (rating === 5) {
-    return [
-      {
-        type: "The Foodie",
-        text: `Absolutely incredible experience at ${name}! Every dish was bursting with flavor and perfectly presented. You can really tell they care about the quality of their ingredients. A must-visit!`
-      },
-      {
-        type: "Quick & Easy",
-        text: `Amazing food and even better service. ${name} never disappoints. 10/10!`
-      },
-      {
-        type: "Ambiance Fan",
-        text: `The atmosphere here is unmatched. It has such a great vibe and the staff makes you feel right at home. Perfect for a night out!`
-      }
-    ];
-  } else if (rating === 4) {
-    return [
-      {
-        type: "The Foodie",
-        text: `Really great food at ${name}. Everything was delicious, especially the main course. Just a tiny wait for the table, but worth it!`
-      },
-      {
-        type: "Quick & Easy",
-        text: `Solid 4 stars. Good food, friendly staff, and very consistent.`
-      },
-      {
-        type: "Ambiance Fan",
-        text: `Loved the vibe here! Very cool spot with great music and a relaxed atmosphere. Food was good too.`
-      }
-    ];
+  const name = (restaurant.business_name || 'this restaurant').trim();
+  const combined = [
+    restaurant.ambiance_context || '',
+    restaurant.menu_context || '',
+  ].join(' ').toLowerCase();
+
+  // Try to pull a specific dish from the context
+  const dishPatterns = [
+    /(?:speciali[sz]e(?:s|d)? in|known for|famous for|best|signature|try the|must.?have)\s+([^.,!?\n]+)/i,
+    /(?:^|\W)([\w\s]{3,25}(?:pizza|pasta|burger|taco|sushi|curry|steak|salad|sandwich|wings|ribs|ramen|noodle|dumpling|roll|bowl|coffee|latte|cocktail|cake|dessert))/i,
+  ];
+  let dishHint: string | null = null;
+  for (const pattern of dishPatterns) {
+    const m = combined.match(pattern);
+    if (m) { dishHint = m[1].trim(); break; }
   }
-  
-  // Generic fallback for low ratings
+
+  const isRomantic = combined.includes('romantic') || combined.includes('candlelit') || combined.includes('intimate');
+  const isCasual   = combined.includes('casual') || combined.includes('laid-back') || combined.includes('relaxed');
+
+  if (rating === 5) return [
+    { type: 'The Foodie',  text: `${name} absolutely delivered. ${dishHint ? `The ${dishHint} was genuinely one of the best things I've eaten this year — seriously, order it.` : 'Every single dish hit the mark — bold flavors, beautiful presentation, and nothing felt like an afterthought.'} Already booked a table for next weekend.` },
+    { type: 'The Vibe',   text: `Everything about ${name} just works. The vibe is ${isRomantic ? 'romantic without feeling stuffy' : isCasual ? 'relaxed and welcoming' : 'warm and unpretentious'}, the staff genuinely seem to love being there, and it shows in how they treat you. Perfect from start to finish.` },
+    { type: 'The Local',  text: `${name} is my go-to and has been for a while. Consistent, delicious, zero disappointments. If you haven't been, what are you waiting for?` },
+  ];
+
+  if (rating === 4) return [
+    { type: 'The Foodie',  text: `Really impressed with ${name}. ${dishHint ? `The ${dishHint} was a highlight — packed with flavor.` : 'The food was genuinely good — clearly made with care.'} There was a bit of a wait but honestly the quality made up for it. Would 100% go back.` },
+    { type: 'The Vibe',   text: `Great night out at ${name}. ${isRomantic ? 'Perfect date spot.' : isCasual ? 'Super laid-back, no pretension.' : 'Nice atmosphere, good energy.'} Staff were on it and the whole experience felt easy and enjoyable. Minor things could be tweaked but nothing that stopped us from having a great time.` },
+    { type: 'The Local',  text: `${name} never really lets you down. Solid food, good vibes, friendly service. Dependable neighborhood gem — 4 stars all day.` },
+  ];
+
+  if (rating === 3) return [
+    { type: 'The Foodie',  text: `${name} had its moments. ${dishHint ? `The ${dishHint} was decent but didn't quite live up to what I was hoping for.` : 'Some dishes landed, others felt a bit flat.'} There's definitely a good restaurant in there — it just needs a bit more consistency.` },
+    { type: 'The Vibe',   text: `A fine experience at ${name} — nothing went wrong, but nothing really wowed me either. The staff were pleasant and the atmosphere was okay. Worth a visit for a casual meal but don't set your expectations too high.` },
+    { type: 'The Local',  text: `${name} is decent. Gets the job done for a quick bite. Wouldn't go out of my way but happy enough going back nearby.` },
+  ];
+
+  if (rating === 2) return [
+    { type: 'The Foodie',  text: `${name} fell short for me. ${dishHint ? `The ${dishHint} was underwhelming — not what I was expecting at all.` : 'The food felt rushed and inconsistent.'} The potential is there but they need to tighten things up. I've had better for less.` },
+    { type: 'The Vibe',   text: `A bit of a disappointing visit to ${name}. Service was slow and the atmosphere didn't quite come together. The staff tried to be friendly but it felt understaffed. Maybe worth a second chance on a quieter night.` },
+    { type: 'The Local',  text: `${name} has work to do. Not terrible, but left wanting more. Two stars feels fair — hoping they sort things out.` },
+  ];
+
   return [
-    { type: "Option 1", text: `Had a decent time at ${name}. The food was good and the service was friendly.` },
-    { type: "Option 2", text: `Nice experience overall. Staff were attentive.` },
-    { type: "Option 3", text: `A solid local spot. Worth a visit.` }
+    { type: 'The Foodie',  text: `Really struggled with ${name} this time. The food was significantly below par and it showed throughout the meal. Genuinely hoping they can address the issues because the concept is solid.` },
+    { type: 'The Vibe',   text: `Tough visit to ${name}. Issues from start to finish — both with the food and the service. Not something I'd rush back to, but I hope the feedback is useful to them.` },
+    { type: 'The Local',  text: `${name} missed the mark badly on my last visit. Hoping it was just a bad day — I'll give it time before trying again.` },
   ];
 }

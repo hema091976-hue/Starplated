@@ -10,16 +10,18 @@ export async function updateSettings(formData: FormData) {
 
   if (!user) return redirect('/auth')
 
-  const businessName = formData.get('business_name') as string
-  const googlePlaceId = formData.get('google_place_id') as string
+  const businessName    = formData.get('business_name') as string
+  const googlePlaceId   = formData.get('google_place_id') as string
   const ambianceContext = formData.get('ambiance_context') as string
+  const menuContext     = formData.get('menu_context') as string
 
   const { error } = await supabase
     .from('restaurants')
     .update({
-      business_name: businessName,
-      google_place_id: googlePlaceId,
+      business_name:    businessName,
+      google_place_id:  googlePlaceId,
       ambiance_context: ambianceContext,
+      menu_context:     menuContext,
     })
     .eq('id', user.id)
 

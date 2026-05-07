@@ -1,5 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Star, TrendingUp, Users, QrCode } from 'lucide-react';
+import { Star, TrendingUp, Users, QrCode, ArrowUpRight } from 'lucide-react';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import { AnalyticsChart } from './AnalyticsChart';
@@ -50,18 +49,28 @@ export default async function DashboardAnalytics() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight">Overview</h1>
-        <p className="text-slate-400 mt-1">Welcome back. Here's how {businessName} is performing.</p>
+      <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Overview</h1>
+          <p className="text-slate-400 mt-1">Tracking growth for {businessName}.</p>
+        </div>
+        <div className="flex gap-3">
+          <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Live Tracking</span>
+          </div>
+        </div>
       </div>
 
       {isTrial && (
-        <div className="mb-8 p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-xl flex items-start gap-3">
-          <div className="text-indigo-400 mt-0.5">ℹ️</div>
+        <div className="mb-8 p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
+             <TrendingUp size={20} className="text-indigo-400" />
+          </div>
           <div>
-            <h3 className="text-sm font-semibold text-indigo-300">You are on a Free Trial</h3>
-            <p className="text-xs text-indigo-200/70 mt-1">
-              Your dashboard is currently showing sample analytics. Once you deploy your QR codes to tables and customers start scanning, this data will update in real-time.
+            <h3 className="text-sm font-bold text-white">Your Review Engine is in Trial Mode</h3>
+            <p className="text-sm text-slate-400 mt-1">
+              Data will update automatically as customers scan your QR codes. Your goal is to turn every scan into a 5-star Google review.
             </p>
           </div>
         </div>
@@ -69,53 +78,53 @@ export default async function DashboardAnalytics() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Total Scans" value={totalScans.toString()} trend="All time" icon={<QrCode size={20} className="text-indigo-400" />} />
-        <StatCard title="Reviews Generated" value={totalReviews.toString()} trend="All time" icon={<Star size={20} className="text-yellow-400" />} />
-        <StatCard title="Conversion Rate" value={conversionRate} trend="Avg" icon={<TrendingUp size={20} className="text-emerald-400" />} />
-        <StatCard title="New Customers" value={(totalReviews * 2).toString()} trend="Est." icon={<Users size={20} className="text-blue-400" />} />
+        <StatCard title="QR Scans" value={totalScans.toString()} trend="Total" icon={<QrCode size={20} className="text-indigo-400" />} />
+        <StatCard title="Reviews Started" value={totalReviews.toString()} trend="Total" icon={<Star size={20} className="text-yellow-400" />} />
+        <StatCard title="Scan-to-Review" value={conversionRate} trend="Avg" icon={<ArrowUpRight size={20} className="text-emerald-400" />} />
+        <StatCard title="Estimated Reach" value={(totalReviews * 150).toString()} trend="Est. Views" icon={<Users size={20} className="text-blue-400" />} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chart */}
         <div className="lg:col-span-2 bg-white/[0.02] border border-white/5 rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-6">Reviews Generated (Last 7 Days)</h2>
+          <h2 className="text-lg font-semibold text-white mb-6">Review Generation (Last 7 Days)</h2>
           <div className="h-[300px] w-full">
             <AnalyticsChart data={chartData} />
           </div>
         </div>
 
-        {/* AI Insights (Premium Feature) */}
-        <div className="relative rounded-2xl overflow-hidden border border-white/5 bg-white/[0.02] p-6">
+        {/* Growth Insights (Premium Feature) */}
+        <div className="relative rounded-2xl overflow-hidden border border-white/5 bg-white/[0.02] p-6 flex flex-col">
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-md">
             <div className="bg-indigo-600/20 p-3 rounded-full mb-3 border border-indigo-500/30">
-              <Star size={24} className="text-indigo-400" />
+              <TrendingUp size={24} className="text-indigo-400" />
             </div>
-            <h3 className="text-white font-bold text-lg tracking-tight">AI Insights Locked</h3>
+            <h3 className="text-white font-bold text-lg tracking-tight">Growth Insights Locked</h3>
             <p className="text-slate-300 text-sm mt-2 mb-5 text-center px-6 max-w-[250px]">
-              Requires the full subscription and at least 50 reviews to analyze trends.
+              Requires the full subscription to analyze trends and keyword performance.
             </p>
-            <button className="bg-white text-slate-950 font-semibold py-2.5 px-6 rounded-xl text-sm hover:bg-slate-200 transition-colors shadow-lg">
+            <button className="bg-white text-slate-950 font-bold py-2.5 px-6 rounded-xl text-sm hover:bg-slate-200 transition-colors shadow-lg">
               Upgrade to Unlock
             </button>
           </div>
 
-          <div className="opacity-30 blur-[4px] pointer-events-none select-none">
-            <h2 className="text-lg font-semibold text-white mb-6">AI Menu Insights</h2>
+          <div className="opacity-30 blur-[4px] pointer-events-none select-none flex-1">
+            <h2 className="text-lg font-semibold text-white mb-6">Ranking Insights</h2>
             <div className="space-y-4">
               <InsightItem 
-                title="Top Mentioned Dish" 
-                value="Truffle Pasta" 
-                detail="Appeared in 42% of 5-star reviews"
+                title="Top Keyword" 
+                value="Excellent Service" 
+                detail="Appeared in 65% of 5-star reviews"
               />
               <InsightItem 
-                title="Ambiance Keyword" 
-                value="Romantic" 
-                detail="Customers love the dim lighting"
+                title="SEO Impact" 
+                value="+12 Spots" 
+                detail="Estimated ranking increase this month"
               />
               <InsightItem 
-                title="Improvement Area" 
-                value="Wait Time" 
-                detail="Mentioned in 3-star reviews"
+                title="Customer Sentiment" 
+                value="98% Positive" 
+                detail="Across all generated drafts"
               />
             </div>
           </div>
@@ -126,16 +135,15 @@ export default async function DashboardAnalytics() {
 }
 
 function StatCard({ title, value, trend, icon }: { title: string, value: string, trend: string, icon: React.ReactNode }) {
-  const isPositive = trend.startsWith('+');
   return (
-    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+    <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.04] transition-colors">
       <div className="flex justify-between items-start mb-4">
-        <div className="p-2 bg-white/5 rounded-lg">{icon}</div>
-        <span className={`text-xs font-medium px-2 py-1 rounded-full ${isPositive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+        <div className="p-2 bg-white/5 rounded-lg border border-white/5">{icon}</div>
+        <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-white/5 text-slate-400 uppercase tracking-widest">
           {trend}
         </span>
       </div>
-      <h3 className="text-slate-400 text-sm font-medium">{title}</h3>
+      <h3 className="text-slate-400 text-xs font-bold uppercase tracking-wider">{title}</h3>
       <p className="text-2xl font-bold text-white mt-1">{value}</p>
     </div>
   );
@@ -144,9 +152,9 @@ function StatCard({ title, value, trend, icon }: { title: string, value: string,
 function InsightItem({ title, value, detail }: { title: string, value: string, detail: string }) {
   return (
     <div className="p-4 bg-black/20 rounded-xl border border-white/5">
-      <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">{title}</p>
+      <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">{title}</p>
       <p className="text-lg font-medium text-white mb-1">{value}</p>
-      <p className="text-xs text-slate-500">{detail}</p>
+      <p className="text-xs text-slate-600">{detail}</p>
     </div>
   );
 }

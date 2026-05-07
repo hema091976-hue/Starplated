@@ -121,14 +121,32 @@ export function SettingsForm({ initialData }: { initialData: any }) {
 
         {/* Ambiance Context */}
         <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-2">Ambiance & Context</h2>
-          <p className="text-sm text-slate-400 mb-6">Describe your restaurant's vibe, signature dishes, or anything you want the AI to emphasize.</p>
+          <h2 className="text-lg font-semibold text-white mb-2">Ambiance & Vibe</h2>
+          <p className="text-sm text-slate-400 mb-6">Describe your restaurant's atmosphere, style, and what makes the experience special. The AI uses this to write authentic-sounding reviews.</p>
           
           <textarea 
             name="ambiance_context"
             className="w-full h-32 bg-black/40 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm"
             defaultValue={initialData?.ambiance_context || ''}
-            placeholder="e.g. We are an upscale, romantic Italian restaurant with dim lighting, candlelight on tables, and soft jazz playing. We specialize in handmade pastas and extensive wine pairings..."
+            placeholder="e.g. Upscale Italian bistro with romantic candlelit tables, exposed brick walls, and soft jazz. Warm and intimate — perfect for date nights. Known for exceptional wine service and a welcoming, unhurried atmosphere."
+          />
+        </div>
+
+        {/* Menu Context */}
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+          <h2 className="text-lg font-semibold text-white mb-2">Menu Items & Signature Dishes</h2>
+          <p className="text-sm text-slate-400 mb-4">List your key dishes, drinks, and specials. The AI will mention these by name in generated reviews — making them sound specific and authentic.</p>
+          <div className="mb-4 p-3 bg-indigo-500/5 border border-indigo-500/15 rounded-xl">
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              <span className="text-indigo-400 font-bold uppercase tracking-wider mr-1">✦ Pro Tip:</span>
+              Just paste a few dish names or your best-sellers. E.g. &quot;Truffle pasta, wagyu burger, tiramisu, espresso martini, weekend brunch specials&quot;
+            </p>
+          </div>
+          <textarea 
+            name="menu_context"
+            className="w-full h-28 bg-black/40 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm"
+            defaultValue={initialData?.menu_context || ''}
+            placeholder="e.g. Handmade tagliatelle, truffle arancini, wood-fired margherita pizza, tiramisu, Aperol spritz, weekend brunch with bottomless mimosas..."
           />
         </div>
 

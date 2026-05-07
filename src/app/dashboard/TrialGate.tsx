@@ -19,9 +19,9 @@ export function TrialGate({ isSubscribed, children }: { isSubscribed: boolean, c
             <div className="w-24 h-24 bg-indigo-600/20 rounded-3xl flex items-center justify-center mb-8 border border-indigo-500/20 shadow-[0_0_50px_rgba(79,70,229,0.2)] animate-pulse">
               <Lock className="text-indigo-400" size={40} />
             </div>
-            <h2 className="text-4xl font-bold text-white mb-4 tracking-tight">Trial Required</h2>
+            <h2 className="text-4xl font-bold text-white mb-4 tracking-tight">Unlock Your Growth</h2>
             <p className="text-slate-300 mb-10 text-lg leading-relaxed">
-              You are currently viewing a preview. Start your 30-day free trial to unlock all features and download your QR codes.
+              Start your 30-day free trial to unlock your QR codes and start turning happy diners into an engine for your Google Maps ranking.
             </p>
             <Link 
               href="/dashboard/billing" 
