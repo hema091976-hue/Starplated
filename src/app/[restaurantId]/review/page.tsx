@@ -14,8 +14,8 @@ export default async function ReviewPage({ params }: { params: { restaurantId: s
   
   const supabase = await createClient();
 
-  // Fetch restaurant details
-  const { data: restaurant, error } = await supabase
+  // Fetch restaurant details using admin client to bypass RLS for public guests
+  const { data: restaurant, error } = await supabaseAdmin
     .from('restaurants')
     .select('id, business_name, google_place_id, ambiance_context, menu_urls')
     .eq('id', restaurantId)

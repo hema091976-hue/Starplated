@@ -12,11 +12,27 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   // Fetch restaurant details including subscription
-  const { data: restaurant } = await supabase
+  let { data: restaurant } = await supabase
     .from('restaurants')
     .select('business_name, subscription_status, stripe_customer_id')
     .eq('id', user.id)
     .single();
+
+  // "Safe Create" - If restaurant record is missing for some reason, create it now
+  if (!restaurant) {
+    const { data: newRestaurant, error: insertError } = await supabase
+      .from('restaurants')
+      .insert({
+        id: user.id,
+        business_name: 'My Restaurant'
+      })
+      .select('business_name, subscription_status, stripe_customer_id')
+      .single();
+    
+    if (!insertError) {
+      restaurant = newRestaurant;
+    }
+  }
 
   const businessName = restaurant?.business_name || 'My Restaurant';
   const isSubscribed = (restaurant?.subscription_status === 'active' || restaurant?.subscription_status === 'trialing') && !!restaurant?.stripe_customer_id;
