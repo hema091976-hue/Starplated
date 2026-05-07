@@ -32,10 +32,18 @@ export async function signup(formData: FormData) {
     password: formData.get('password') as string,
   }
 
-  const { error } = await supabase.auth.signUp(data)
+  const { data: authData, error } = await supabase.auth.signUp(data)
 
   if (error) {
     return redirect(`/auth?message=${encodeURIComponent(error.message)}`)
+  }
+
+  // Create restaurant record for the new user
+  if (authData.user) {
+    await supabase.from('restaurants').insert({
+      id: authData.user.id,
+      business_name: 'My Restaurant'
+    });
   }
 
   revalidatePath('/', 'layout')
