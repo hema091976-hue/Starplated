@@ -8,28 +8,35 @@ const supabaseAdmin = createClient(
 
 export async function GET() {
   try {
+    const results = [];
+
     // 1. Add menu_context to restaurants
-    await supabaseAdmin.rpc('exec_sql', {
-      sql: `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS menu_context text DEFAULT '';`
-    }).catch(() => {});
-
-    // 2. Add session_id to analytics_events for accurate conversion tracking
-    // We try multiple ways because exec_sql might be missing
-    const { error: sessionError } = await supabaseAdmin.rpc('exec_sql', {
-      sql: `ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS session_id text;`
-    });
-
-    if (sessionError) {
-      return NextResponse.json({ 
-        error: 'Could not run migration via RPC. Please run this SQL manually in Supabase:',
-        sql: `
-          ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS menu_context text DEFAULT '';
-          ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS session_id text;
-        `
-      }, { status: 500 });
+    try {
+      const { error } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS menu_context text DEFAULT '';`
+      });
+      if (error) throw error;
+      results.push('restaurants.menu_context added or already exists');
+    } catch (e: any) {
+      results.push(`restaurants.menu_context FAILED: ${e.message}`);
     }
 
-    return NextResponse.json({ success: true, message: 'Migrations applied successfully' });
+    // 2. Add session_id to analytics_events
+    try {
+      const { error } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS session_id text;`
+      });
+      if (error) throw error;
+      results.push('analytics_events.session_id added or already exists');
+    } catch (e: any) {
+      results.push(`analytics_events.session_id FAILED: ${e.message}`);
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Migration process completed',
+      results 
+    });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
