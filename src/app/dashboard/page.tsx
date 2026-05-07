@@ -29,7 +29,6 @@ export default async function DashboardAnalytics() {
   const safeEvents = events || [];
 
   // Accurate tracking: Count UNIQUE sessions for scans and review generations
-  // If session_id is missing (old data), we fall back to counting all events
   const uniqueScans = new Set(safeEvents.filter(e => e.event_type === 'scan').map(e => e.session_id || Math.random())).size;
   const uniqueReviews = new Set(safeEvents.filter(e => e.event_type === 'review_generated').map(e => e.session_id || Math.random())).size;
   
@@ -66,9 +65,9 @@ export default async function DashboardAnalytics() {
       </div>
 
       {isTrial && (
-        <div className="mb-8 p-6 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl flex items-start gap-4">
-          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
-             <TrendingUp size={20} className="text-indigo-400" />
+        <div className="mb-8 p-6 bg-[#fbbc04]/10 border border-[#fbbc04]/20 rounded-2xl flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-[#fbbc04]/20 flex items-center justify-center shrink-0">
+             <TrendingUp size={20} className="text-[#fbbc04]" />
           </div>
           <div>
             <h3 className="text-sm font-bold text-white">Your Review Engine is in Trial Mode</h3>
@@ -81,8 +80,8 @@ export default async function DashboardAnalytics() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatCard title="Total Visitors" value={uniqueScans.toString()} trend="Unique" icon={<Users size={20} className="text-indigo-400" />} />
-        <StatCard title="Review Engagement" value={uniqueReviews.toString()} trend="Unique" icon={<Star size={20} className="text-yellow-400" />} />
+        <StatCard title="Total Visitors" value={uniqueScans.toString()} trend="Unique" icon={<Users size={20} className="text-[#fbbc04]" />} />
+        <StatCard title="Review Engagement" value={uniqueReviews.toString()} trend="Unique" icon={<Star size={20} className="text-[#fbbc04]" />} />
         <StatCard title="Scan-to-Review" value={conversionRate} trend="Avg" icon={<ArrowUpRight size={20} className="text-emerald-400" />} />
         <StatCard title="Estimated Reach" value={(uniqueReviews * 150).toString()} trend="Est. Views" icon={<TrendingUp size={20} className="text-blue-400" />} />
       </div>
@@ -99,8 +98,8 @@ export default async function DashboardAnalytics() {
         {/* Growth Insights */}
         <div className="relative rounded-2xl overflow-hidden border border-white/5 bg-white/[0.02] p-6 flex flex-col">
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-md">
-            <div className="bg-indigo-600/20 p-3 rounded-full mb-3 border border-indigo-500/30">
-              <TrendingUp size={24} className="text-indigo-400" />
+            <div className="bg-[#fbbc04]/20 p-3 rounded-full mb-3 border border-[#fbbc04]/30">
+              <TrendingUp size={24} className="text-[#fbbc04]" />
             </div>
             <h3 className="text-white font-bold text-lg tracking-tight">Growth Insights Locked</h3>
             <p className="text-slate-300 text-sm mt-2 mb-5 text-center px-6 max-w-[250px]">

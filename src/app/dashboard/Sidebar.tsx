@@ -16,19 +16,19 @@ export function Sidebar({ businessName, isSubscribed }: { businessName: string, 
   ];
 
   return (
-    <aside className="w-64 border-r border-white/5 bg-slate-950/50 backdrop-blur-xl flex flex-col fixed inset-y-0 z-20">
-      <div className="h-16 flex items-center px-6 border-b border-white/5">
-        <div className="flex items-center gap-2 font-bold text-lg">
-          <div className="w-6 h-6 rounded bg-indigo-600 flex items-center justify-center shrink-0">
-            <Store size={14} className="text-white" />
+    <aside className="w-64 border-r border-white/5 bg-[#001d3d] flex flex-col fixed inset-y-0 z-20">
+      <div className="h-20 flex items-center px-6 border-b border-white/5">
+        <div className="flex items-center gap-3 font-bold text-lg">
+          <div className="w-10 h-10 relative shrink-0">
+             <img src="/logo.png" alt="StarPlated" className="w-full h-full object-contain" />
           </div>
-          <span className="truncate">{businessName}</span>
+          <span className="truncate text-white text-sm uppercase tracking-wide">Dashboard</span>
         </div>
       </div>
       
       <div className="p-4 flex-1">
-        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 px-3">Main Menu</div>
-        <nav className="space-y-1">
+        <div className="text-xs font-bold text-[#fbbc04]/60 uppercase tracking-widest mb-6 px-3">Main Menu</div>
+        <nav className="space-y-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             const isLocked = item.protected && !isSubscribed;
@@ -37,10 +37,10 @@ export function Sidebar({ businessName, isSubscribed }: { businessName: string, 
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center justify-between px-3 py-3 rounded-xl text-sm font-bold transition-all ${
                   isActive 
-                    ? 'bg-indigo-600/10 text-indigo-400' 
-                    : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                    ? 'bg-[#fbbc04]/10 text-[#fbbc04] border border-[#fbbc04]/20' 
+                    : 'text-slate-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -55,8 +55,12 @@ export function Sidebar({ businessName, isSubscribed }: { businessName: string, 
       </div>
 
       <div className="p-4 border-t border-white/5">
+        <div className="px-3 mb-4">
+           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Logged in as</p>
+           <p className="text-sm font-bold text-white truncate">{businessName}</p>
+        </div>
         <form action={signOut}>
-          <button type="submit" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-slate-200 w-full transition-colors">
+          <button type="submit" className="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-bold text-slate-400 hover:bg-red-500/10 hover:text-red-400 w-full transition-all border border-transparent hover:border-red-500/20">
             <LogOut size={18} />
             Sign out
           </button>

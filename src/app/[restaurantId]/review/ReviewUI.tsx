@@ -134,14 +134,14 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
 
       <div className="max-w-xl mx-auto px-6 pt-16 pb-24">
         
-        {/* Google-style Header */}
+        {/* Brand Header */}
         <div className="text-center mb-10">
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-[#1a73e8] rounded-full flex items-center justify-center shadow-sm">
-              <span className="text-white text-2xl font-bold font-google">G</span>
+          <div className="flex justify-center mb-6">
+            <div className="relative w-20 h-20">
+              <img src="/logo.png" alt="StarPlated Logo" className="w-full h-full object-contain" />
             </div>
           </div>
-          <h1 className="text-[24px] font-medium text-[#202124] mb-1 tracking-tight">
+          <h1 className="text-[26px] font-bold text-[#202124] mb-1 tracking-tight">
             {restaurant.business_name}
           </h1>
           <div className="flex items-center justify-center gap-1.5 text-[#70757a] text-sm">
