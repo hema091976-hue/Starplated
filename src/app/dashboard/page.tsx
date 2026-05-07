@@ -23,16 +23,19 @@ export default async function DashboardAnalytics() {
   // Fetch real analytics events
   const { data: events } = await supabase
     .from('analytics_events')
-    .select('event_type, created_at')
+    .select('event_type, created_at, session_id')
     .eq('restaurant_id', user.id);
 
   const safeEvents = events || [];
 
-  const totalScans = safeEvents.filter(e => e.event_type === 'scan').length;
-  const totalReviews = safeEvents.filter(e => e.event_type === 'review_generated').length;
-  const conversionRate = totalScans > 0 ? ((totalReviews / totalScans) * 100).toFixed(1) + '%' : '0%';
+  // Accurate tracking: Count UNIQUE sessions for scans and review generations
+  // If session_id is missing (old data), we fall back to counting all events
+  const uniqueScans = new Set(safeEvents.filter(e => e.event_type === 'scan').map(e => e.session_id || Math.random())).size;
+  const uniqueReviews = new Set(safeEvents.filter(e => e.event_type === 'review_generated').map(e => e.session_id || Math.random())).size;
+  
+  const conversionRate = uniqueScans > 0 ? ((uniqueReviews / uniqueScans) * 100).toFixed(1) + '%' : '0%';
 
-  // Generate last 7 days chart data
+  // Generate last 7 days chart data (using unique generations)
   const chartData = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
@@ -40,9 +43,9 @@ export default async function DashboardAnalytics() {
     const dateStr = d.toISOString().split('T')[0];
     const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
     
-    const dayReviews = safeEvents.filter(e => {
+    const dayReviews = new Set(safeEvents.filter(e => {
       return e.event_type === 'review_generated' && e.created_at.startsWith(dateStr);
-    }).length;
+    }).map(e => e.session_id || Math.random())).size;
 
     chartData.push({ name: dayName, reviews: dayReviews });
   }
@@ -78,22 +81,22 @@ export default async function DashboardAnalytics() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatCard title="QR Scans" value={totalScans.toString()} trend="Total" icon={<QrCode size={20} className="text-indigo-400" />} />
-        <StatCard title="Reviews Started" value={totalReviews.toString()} trend="Total" icon={<Star size={20} className="text-yellow-400" />} />
+        <StatCard title="Total Visitors" value={uniqueScans.toString()} trend="Unique" icon={<Users size={20} className="text-indigo-400" />} />
+        <StatCard title="Review Engagement" value={uniqueReviews.toString()} trend="Unique" icon={<Star size={20} className="text-yellow-400" />} />
         <StatCard title="Scan-to-Review" value={conversionRate} trend="Avg" icon={<ArrowUpRight size={20} className="text-emerald-400" />} />
-        <StatCard title="Estimated Reach" value={(totalReviews * 150).toString()} trend="Est. Views" icon={<Users size={20} className="text-blue-400" />} />
+        <StatCard title="Estimated Reach" value={(uniqueReviews * 150).toString()} trend="Est. Views" icon={<TrendingUp size={20} className="text-blue-400" />} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Chart */}
         <div className="lg:col-span-2 bg-white/[0.02] border border-white/5 rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-6">Review Generation (Last 7 Days)</h2>
+          <h2 className="text-lg font-semibold text-white mb-6">Unique Reviews Started (Last 7 Days)</h2>
           <div className="h-[300px] w-full">
             <AnalyticsChart data={chartData} />
           </div>
         </div>
 
-        {/* Growth Insights (Premium Feature) */}
+        {/* Growth Insights */}
         <div className="relative rounded-2xl overflow-hidden border border-white/5 bg-white/[0.02] p-6 flex flex-col">
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-950/60 backdrop-blur-md">
             <div className="bg-indigo-600/20 p-3 rounded-full mb-3 border border-indigo-500/30">
@@ -111,21 +114,9 @@ export default async function DashboardAnalytics() {
           <div className="opacity-30 blur-[4px] pointer-events-none select-none flex-1">
             <h2 className="text-lg font-semibold text-white mb-6">Ranking Insights</h2>
             <div className="space-y-4">
-              <InsightItem 
-                title="Top Keyword" 
-                value="Excellent Service" 
-                detail="Appeared in 65% of 5-star reviews"
-              />
-              <InsightItem 
-                title="SEO Impact" 
-                value="+12 Spots" 
-                detail="Estimated ranking increase this month"
-              />
-              <InsightItem 
-                title="Customer Sentiment" 
-                value="98% Positive" 
-                detail="Across all generated drafts"
-              />
+              <InsightItem title="Top Keyword" value="Excellent Service" detail="Appeared in 65% of 5-star reviews" />
+              <InsightItem title="SEO Impact" value="+12 Spots" detail="Estimated ranking increase this month" />
+              <InsightItem title="Customer Sentiment" value="98% Positive" detail="Across all generated drafts" />
             </div>
           </div>
         </div>

@@ -38,7 +38,7 @@ function extractJsonArray(text: string): any[] | null {
 
 export async function POST(request: Request) {
   try {
-    const { rating, restaurantId, selectedTags } = await request.json();
+    const { rating, restaurantId, selectedTags, sessionId } = await request.json();
 
     if (!rating || rating < 1 || rating > 5) {
       return NextResponse.json({ error: 'Valid rating (1-5) is required' }, { status: 400 });
@@ -46,14 +46,11 @@ export async function POST(request: Request) {
 
     if (restaurantId === 'demo-restaurant') {
       return NextResponse.json({
-        options: generateFallbackOptions(
-          {
-            business_name: 'The Demo Bistro',
-            ambiance_context: 'A cozy modern bistro with artisanal coffee and homemade pastries.',
-            menu_context: 'Avocado toast, eggs benedict, flat white coffee, blueberry pancakes, burger',
-          },
-          rating
-        ),
+        options: [
+          { type: 'The Foodie', text: 'Amazing food and great vibe!' },
+          { type: 'The Vibe', text: 'Loved the atmosphere here.' },
+          { type: 'The Local', text: 'My favorite spot in town.' }
+        ]
       });
     }
 
@@ -64,7 +61,6 @@ export async function POST(request: Request) {
       .single();
 
     if (dbError || !restaurant) {
-      console.error('Restaurant fetch error:', dbError);
       return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
     }
 
@@ -88,9 +84,9 @@ Context: ${fullContext}
 Tags: ${selectedTags?.join(', ') || 'none'}
 
 Personas:
-1. "The Foodie": focused on tastes and specific dishes
-2. "The Vibe": focused on atmosphere and service
-3. "The Local": short, punchy, and casual
+1. "The Foodie": focused on tastes/dishes
+2. "The Vibe": atmosphere/service
+3. "The Local": punchy/casual
 
 Rules:
 - NO EMOJIS.
@@ -118,7 +114,7 @@ Return a JSON array of objects with "type" and "text" fields.`;
       const parsed = extractJsonArray(responseText);
 
       if (parsed && parsed.length >= 3) {
-        logEvent(restaurantId, rating);
+        logEvent(restaurantId, rating, sessionId);
         return NextResponse.json({ options: parsed });
       }
 
@@ -138,47 +134,13 @@ Return a JSON array of objects with "type" and "text" fields.`;
   }
 }
 
-async function logEvent(restaurantId: string, rating: number) {
+async function logEvent(restaurantId: string, rating: number, sessionId?: string) {
   try {
     await supabaseAdmin.from('analytics_events').insert({
       restaurant_id: restaurantId,
       event_type: 'review_generated',
       rating,
+      session_id: sessionId
     });
   } catch (_) {}
-}
-
-function generateFallbackOptions(restaurant: any, rating: number) {
-  const name = (restaurant.business_name || 'this restaurant').trim();
-  const combined = [(restaurant.ambiance_context || ''), (restaurant.menu_context || '')].join(' ').toLowerCase();
-  
-  if (rating === 5) return [
-    { type: 'The Foodie',  text: `${name} absolutely delivered. Every single dish hit the mark — bold flavors and beautiful presentation. Already looking forward to my next visit.` },
-    { type: 'The Vibe',   text: `Everything about ${name} just works. The atmosphere is warm and welcoming, and the staff genuinely seem to love being there. Perfect from start to finish.` },
-    { type: 'The Local',  text: `${name} is my go-to and has been for a while. Consistent, delicious, and zero disappointments. If you haven't been, you're missing out.` },
-  ];
-
-  if (rating === 4) return [
-    { type: 'The Foodie',  text: `Really impressed with ${name}. The food was genuinely good and clearly made with care. There was a bit of a wait but the quality made up for it.` },
-    { type: 'The Vibe',   text: `Great night out at ${name}. Nice atmosphere and good energy. Staff were on it and the whole experience felt easy and enjoyable.` },
-    { type: 'The Local',  text: `${name} never really lets you down. Solid food, good vibes, and friendly service. Dependable neighborhood gem.` },
-  ];
-
-  if (rating === 3) return [
-    { type: 'The Foodie',  text: `${name} had its moments. Some dishes landed, others felt a bit flat. There's definitely a good restaurant in there — it just needs a bit more consistency.` },
-    { type: 'The Vibe',   text: `A fine experience at ${name}. Nothing went wrong, but nothing really wowed me either. The staff were pleasant and the atmosphere was okay.` },
-    { type: 'The Local',  text: `${name} is decent. Gets the job done for a quick bite. Wouldn't go out of my way but happy enough going back if I'm nearby.` },
-  ];
-
-  if (rating === 2) return [
-    { type: 'The Foodie',  text: `${name} fell short for me. The food felt rushed and inconsistent. The potential is there but they need to tighten things up.` },
-    { type: 'The Vibe',   text: `A bit of a disappointing visit to ${name}. Service was slow and the atmosphere didn't quite come together. Maybe worth a second chance on a quieter night.` },
-    { type: 'The Local',  text: `${name} has work to do. Not terrible, but left wanting more. Hoping they sort things out soon.` },
-  ];
-
-  return [
-    { type: 'The Foodie',  text: `Really struggled with ${name} this time. The food was significantly below par and it showed throughout the meal.` },
-    { type: 'The Vibe',   text: `Tough visit to ${name}. Issues from start to finish — both with the food and the service. Not something I'd rush back to.` },
-    { type: 'The Local',  text: `${name} missed the mark badly on my last visit. Hoping it was just a bad day.` },
-  ];
 }

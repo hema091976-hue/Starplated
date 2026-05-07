@@ -15,7 +15,7 @@ const TAG_CATEGORIES = [
   { id: 'vibe', label: 'Vibe', tags: ['Cozy', 'Clean', 'Modern', 'Great Music'] },
 ];
 
-export function ReviewUI({ restaurant }: { restaurant: any }) {
+export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId: string }) {
   const [rating, setRating] = useState<number>(0);
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -33,8 +33,6 @@ export function ReviewUI({ restaurant }: { restaurant: any }) {
 
   const handleRatingClick = (selectedRating: number) => {
     setRating(selectedRating);
-    // If they haven't generated yet, we might want to wait for them to pick tags
-    // but for immediate feedback, we'll generate right away.
     generateReviews(selectedRating);
   };
 
@@ -53,7 +51,8 @@ export function ReviewUI({ restaurant }: { restaurant: any }) {
         body: JSON.stringify({ 
           rating: selectedRating, 
           restaurantId: restaurant.id,
-          selectedTags: selectedTags
+          selectedTags: selectedTags,
+          sessionId: sessionId
         }),
       });
       
@@ -65,7 +64,7 @@ export function ReviewUI({ restaurant }: { restaurant: any }) {
       }
     } catch (err) {
       console.error('Review generation failed:', err);
-      setError('Network error. Please check your connection and try again.');
+      setError('Network error. Please try again.');
     } finally {
       setIsGenerating(false);
     }

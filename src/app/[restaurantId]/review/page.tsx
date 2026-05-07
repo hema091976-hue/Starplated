@@ -3,18 +3,17 @@ import { ReviewUI } from './ReviewUI';
 import { notFound } from 'next/navigation';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 
-// Separate admin client for logging scans without user session
-const supabaseAdmin = createAdminClient(
+const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export default async function ReviewPage({ params }: { params: { restaurantId: string } }) {
   const { restaurantId } = await params;
+  const sessionId = Math.random().toString(36).substring(2, 15);
   
   const supabase = await createClient();
 
-  // Fetch restaurant details using admin client to bypass RLS for public guests
   const { data: restaurant, error } = await supabaseAdmin
     .from('restaurants')
     .select('id, business_name, google_place_id, ambiance_context, menu_urls')
@@ -22,7 +21,6 @@ export default async function ReviewPage({ params }: { params: { restaurantId: s
     .single();
 
   if (error || !restaurant) {
-    // If it's the demo ID, provide mock data
     if (restaurantId === 'demo-restaurant') {
       return (
         <ReviewUI 
@@ -33,17 +31,19 @@ export default async function ReviewPage({ params }: { params: { restaurantId: s
             ambiance_context: 'A cozy, modern bistro with artisanal coffee and homemade pastries.',
             menu_urls: []
           }} 
+          sessionId={sessionId}
         />
       );
     }
     return notFound();
   }
 
-  // Log the scan event
+  // Log the scan event with session ID
   await supabaseAdmin.from('analytics_events').insert({
     restaurant_id: restaurantId,
-    event_type: 'scan'
+    event_type: 'scan',
+    session_id: sessionId
   });
 
-  return <ReviewUI restaurant={restaurant} />;
+  return <ReviewUI restaurant={restaurant} sessionId={sessionId} />;
 }
