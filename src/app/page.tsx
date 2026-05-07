@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Star, BarChart3, Menu, Search, MapPin, ShieldCheck, TrendingUp, CheckCircle2, Zap, Clock, MousePointer2 } from 'lucide-react';
+import { ArrowRight, Star, BarChart3, Menu, Search, MapPin, ShieldCheck, TrendingUp, CheckCircle2, Zap, Clock, MousePointer2, Sparkles } from 'lucide-react';
 
 export default function LandingPage() {
   return (
