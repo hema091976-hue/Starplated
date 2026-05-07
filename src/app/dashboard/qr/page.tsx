@@ -1,5 +1,6 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { QRCodeDisplay } from './QRCodeDisplay';
 
 export default async function QRPage() {
@@ -18,14 +19,30 @@ export default async function QRPage() {
 
   const businessName = restaurant?.business_name || 'My Restaurant';
   
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  // Dynamic base URL detection for production/dev compatibility
+  const headersList = await headers();
+  const host = headersList.get('host');
+  const protocol = host?.includes('localhost') ? 'http' : 'https';
+  
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('localhost')
+    ? process.env.NEXT_PUBLIC_APP_URL 
+    : `${protocol}://${host}`;
+
   const reviewUrl = `${baseUrl}/${user.id}/review`;
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white tracking-tight">QR Codes</h1>
-        <p className="text-slate-400 mt-1">Download and print your custom QR codes for your tables.</p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">QR Codes</h1>
+          <p className="text-slate-400 mt-1">Download and print your custom QR codes for your tables.</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Target URL</p>
+          <p className="text-xs text-indigo-400 font-mono bg-indigo-500/5 px-2 py-1 rounded border border-indigo-500/10 truncate max-w-[200px]">
+            {reviewUrl}
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -56,7 +73,7 @@ export default async function QRPage() {
           <div className="bg-indigo-600/10 border border-indigo-500/20 rounded-2xl p-6">
             <h2 className="text-lg font-semibold text-indigo-300 mb-2">Pro Tip</h2>
             <p className="text-sm text-indigo-200/70">
-              The AI works best when customers scan the QR code right after their meal while the flavors are still fresh in their minds!
+              Your QR code is now dynamic! It will automatically point to your current domain whether you're in development or production.
             </p>
           </div>
         </div>
