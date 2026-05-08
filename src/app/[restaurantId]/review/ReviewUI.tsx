@@ -161,7 +161,10 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
     
     setTimeout(() => {
       window.open(googleUrl, '_blank');
-      setTimeout(() => setShowGuide(false), 500);
+      setTimeout(() => {
+        setShowGuide(false);
+        setCopiedIndex(null); // Reset button state after redirect modal closes
+      }, 500);
     }, 2500);
   };
 
@@ -306,15 +309,23 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
               <p className="text-[15px] text-[#6B7280]">Select the one that best matches your experience.</p>
             </div>
 
-            {isGenerating && !options.length && (
+            {isGenerating && !options.length ? (
               <div className="py-16 text-center">
                 <Loader2 className="w-10 h-10 text-[#3B82F6] animate-spin mx-auto mb-4" />
                 <p className="text-[15px] font-medium text-[#6B7280] animate-pulse">Our AI is crafting your options...</p>
               </div>
-            )}
-
-            {options.length > 0 && !isGenerating && (
+            ) : (
               <div className="relative group">
+                {/* Loader Overlay when regenerating */}
+                {isGenerating && options.length > 0 && (
+                  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/10 backdrop-blur-[2px] rounded-[24px]">
+                    <div className="bg-white/90 p-4 rounded-2xl shadow-xl flex items-center gap-3 border border-[#E5E7EB]">
+                      <Loader2 size={20} className="text-[#3B82F6] animate-spin" />
+                      <span className="text-sm font-bold text-[#111827]">Updating reviews...</span>
+                    </div>
+                  </div>
+                )}
+                
                 {/* Desktop Carousel Arrows */}
                 <button 
                   onClick={() => scrollReviews('left')} 
@@ -329,12 +340,13 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
                   <ChevronRight size={20} />
                 </button>
 
-                {/* Horizontal Scroll Container */}
                 <div 
                   ref={scrollContainerRef}
-                  className="flex overflow-x-auto gap-4 md:gap-6 pb-6 pt-2 snap-x snap-mandatory hide-scrollbar -mx-2 px-2"
+                  className={`flex overflow-x-auto gap-4 md:gap-6 pb-6 pt-2 snap-x snap-mandatory hide-scrollbar -mx-2 px-2 transition-all duration-500 ${isGenerating ? 'blur-sm grayscale-[0.5] opacity-50' : ''}`}
                   style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
+                  {/* If generating and we have existing options, show them blurred. 
+                      If no options yet, the loader above will show. */}
                   {options.map((option, index) => {
                     const isSelectedCard = selectedReviewIndex === index;
                     return (
