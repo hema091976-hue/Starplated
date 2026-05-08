@@ -95,10 +95,10 @@ Rules:
 - Matches sentiment of ${rating} stars exactly.
 - Length: 2-5 sentences.
 
-Return a JSON array of objects with "type" and "text" fields.`;
+Return a JSON array of objects with "type" and "text" fields. 
+Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
 
-    // Try multiple model names in order of preference
-    const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro'];
+    const modelsToTry = ['gemini-1.5-flash', 'gemini-pro'];
     let lastError: any = null;
 
     for (const modelName of modelsToTry) {
@@ -106,10 +106,6 @@ Return a JSON array of objects with "type" and "text" fields.`;
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ 
           model: modelName,
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.9,
-          },
           safetySettings: [
             { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
             { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -118,6 +114,7 @@ Return a JSON array of objects with "type" and "text" fields.`;
           ]
         });
 
+        // Removed responseMimeType for maximum compatibility
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         const parsed = extractJsonArray(responseText);
@@ -129,18 +126,12 @@ Return a JSON array of objects with "type" and "text" fields.`;
       } catch (err: any) {
         console.error(`Attempt with ${modelName} failed:`, err.message);
         lastError = err;
-        // Continue to next model if it's a "not found" error
-        if (!err.message?.includes('not found') && !err.message?.includes('404')) {
-           // If it's a safety or quota error, stop and report it
-           break;
-        }
       }
     }
 
-    // If we get here, all models failed
     return NextResponse.json({ 
       error: `AI Generation Failed. Last Error: ${lastError?.message || 'Unknown'}`,
-      details: 'Please ensure your Google AI Key has access to Gemini 1.5 Flash or Gemini Pro.'
+      details: 'This usually means your API Key does not have the "Generative Language API" enabled in Google Cloud or AI Studio.'
     }, { status: 503 });
 
   } catch (outerError: any) {
