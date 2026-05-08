@@ -98,7 +98,7 @@ Rules:
 Return a JSON array of objects with "type" and "text" fields. 
 Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
 
-    const modelsToTry = ['gemini-1.5-flash', 'gemini-pro'];
+    const modelsToTry = ['models/gemini-1.5-flash', 'models/gemini-1.5-flash-latest', 'models/gemini-pro'];
     let lastError: any = null;
 
     for (const modelName of modelsToTry) {
@@ -114,7 +114,6 @@ Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
           ]
         });
 
-        // Removed responseMimeType for maximum compatibility
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         const parsed = extractJsonArray(responseText);
@@ -131,7 +130,7 @@ Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
 
     return NextResponse.json({ 
       error: `AI Generation Failed. Last Error: ${lastError?.message || 'Unknown'}`,
-      details: 'This usually means your API Key does not have the "Generative Language API" enabled in Google Cloud or AI Studio.'
+      details: 'Check if your Google AI Key is valid and has "Generative Language API" enabled.'
     }, { status: 503 });
 
   } catch (outerError: any) {
