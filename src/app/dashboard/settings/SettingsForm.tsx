@@ -1,16 +1,14 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, FileText, CheckCircle2, Link as LinkIcon, Building2, Trash2, Loader2 } from 'lucide-react';
-import { updateSettings, uploadMenu, removeMenuFile, updateLogoUrl } from '../actions';
+import { Upload, FileText, CheckCircle2, Link as LinkIcon, Building2, Trash2, Loader2, Sparkles } from 'lucide-react';
+import { updateSettings, updateLogoUrl } from '../actions';
 import { createClient } from '@/utils/supabase/client';
 
 export function SettingsForm({ initialData }: { initialData: any }) {
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   async function handleAction(formData: FormData) {
@@ -23,28 +21,6 @@ export function SettingsForm({ initialData }: { initialData: any }) {
       setTimeout(() => setIsSaved(false), 3000);
     } else {
       alert(result.error);
-    }
-  }
-
-  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    setIsUploading(true);
-    const formData = new FormData();
-    for (let i = 0; i < files.length; i++) {
-      formData.append('file', files[i]);
-    }
-    
-    const result = await uploadMenu(formData);
-    setIsUploading(false);
-    
-    if (result.error) {
-      alert(result.error);
-    }
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
     }
   }
 
@@ -87,58 +63,58 @@ export function SettingsForm({ initialData }: { initialData: any }) {
     }
   }
 
-  async function handleRemoveMenu(url: string) {
-    if (!confirm('Are you sure you want to remove this menu file?')) return;
-    setIsUploading(true);
-    const result = await removeMenuFile(url);
-    setIsUploading(false);
-    
-    if (result?.error) {
-      alert(result.error);
-    }
-  }
-
-  const menuUrls = Array.isArray(initialData?.menu_urls) ? initialData.menu_urls : [];
-
   return (
-    <div className="space-y-6">
-      <form action={handleAction} className="space-y-6">
-        {/* Basic Info */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-6">Business Profile</h2>
+    <div className="max-w-4xl">
+      <div className="mb-10">
+        <h1 className="text-3xl font-bold text-white mb-2">Profile & Context</h1>
+        <p className="text-slate-400">Configure your business details so the AI can generate highly specific reviews.</p>
+      </div>
+
+      <form action={handleAction} className="space-y-8">
+        
+        {/* Business Profile Card */}
+        <div className="bg-[#0F172A]/50 border border-white/5 rounded-[24px] p-8 shadow-xl backdrop-blur-sm">
+          <h2 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
+            Business Profile
+          </h2>
           
-          <div className="space-y-4">
+          <div className="space-y-8">
+            {/* Business Name */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5" htmlFor="business_name">Business Name</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Building2 size={16} className="text-slate-500" />
+              <label className="block text-sm font-medium text-slate-300 mb-3" htmlFor="business_name">Business Name</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-400 text-slate-500">
+                  <Building2 size={18} />
                 </div>
                 <input 
                   id="business_name"
                   name="business_name"
                   type="text" 
                   defaultValue={initialData?.business_name || ''}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                  className="w-full bg-[#020617]/80 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-lg font-medium placeholder:text-slate-700"
+                  placeholder="e.g. The Rusty Spoon"
                   required
                 />
               </div>
             </div>
 
+            {/* Restaurant Logo Upload */}
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Restaurant Logo</label>
-              <div className="flex items-center gap-6 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
-                <div className="w-20 h-20 bg-black/40 rounded-full overflow-hidden border border-white/10 flex items-center justify-center shrink-0">
+              <label className="block text-sm font-medium text-slate-300 mb-3">Restaurant Logo</label>
+              <div className="flex items-center gap-8 p-6 bg-[#020617]/40 border border-white/5 rounded-[20px]">
+                <div className="w-24 h-24 bg-[#0F172A] rounded-full overflow-hidden border-2 border-white/10 flex items-center justify-center shrink-0 shadow-inner">
                   {initialData?.logo_url ? (
                     <img src={initialData.logo_url} alt="Logo" className="w-full h-full object-cover" />
                   ) : (
-                    <Building2 size={32} className="text-slate-700" />
+                    <div className="flex flex-col items-center text-slate-700">
+                      <Sparkles size={32} />
+                    </div>
                   )}
                 </div>
-                <div className="space-y-3">
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                <div className="flex-1 space-y-4">
+                  <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
                     Recommended: <span className="text-white font-medium">512x512px</span> (Square PNG or JPG).<br/>
-                    This will appear at the top of your review page.
+                    This will appear at the top of your customer review page.
                   </p>
                   <input 
                     type="file" 
@@ -151,31 +127,32 @@ export function SettingsForm({ initialData }: { initialData: any }) {
                     type="button"
                     onClick={() => logoInputRef.current?.click()}
                     disabled={isUploadingLogo}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-xl text-xs font-bold transition-all border border-indigo-500/20 disabled:opacity-50"
+                    className="flex items-center gap-2.5 px-6 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-xl text-sm font-bold transition-all border border-indigo-500/20 disabled:opacity-50 active:scale-[0.98]"
                   >
-                    {isUploadingLogo ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    {isUploadingLogo ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
                     {initialData?.logo_url ? 'Change Logo' : 'Upload Logo'}
                   </button>
                 </div>
               </div>
             </div>
 
+            {/* Google Place ID */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center justify-between mb-3">
                 <label className="block text-sm font-medium text-slate-300" htmlFor="google_place_id">Google Place ID</label>
                 <a 
                   href="https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder" 
                   target="_blank" 
                   rel="noreferrer"
-                  className="text-[10px] text-indigo-400 hover:text-indigo-300 underline font-medium"
+                  className="text-[11px] text-indigo-400 hover:text-indigo-300 underline font-bold tracking-tight uppercase"
                 >
                   How do I find this?
                 </a>
               </div>
-              <p className="text-xs text-slate-500 mb-2">This ensures reviews go to your exact Google Maps listing.</p>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <LinkIcon size={16} className="text-slate-500" />
+              <p className="text-xs text-slate-500 mb-3">This ensures reviews go to your exact Google Maps listing.</p>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none transition-colors group-focus-within:text-indigo-400 text-slate-500">
+                  <LinkIcon size={18} />
                 </div>
                 <input 
                   id="google_place_id"
@@ -183,117 +160,69 @@ export function SettingsForm({ initialData }: { initialData: any }) {
                   type="text" 
                   defaultValue={initialData?.google_place_id || ''}
                   placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
-                  className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                  className="w-full bg-[#020617]/80 border border-white/10 rounded-2xl pl-12 pr-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-mono text-sm"
                 />
               </div>
-              <div className="mt-3 p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
-                <p className="text-[10px] text-slate-400 leading-relaxed">
-                  <span className="text-indigo-400 font-bold uppercase tracking-wider mr-1">Pro Tip:</span> 
-                  Search for your restaurant name in the finder linked above. Once found, copy the string after "Place ID:" and paste it here.
+              <div className="mt-4 p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl">
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  <span className="text-indigo-400 font-black uppercase tracking-[0.1em] text-[10px] mr-2">Pro Tip:</span> 
+                  Search for your restaurant name in the finder linked above. Once found, copy the string after &quot;Place ID:&quot; and paste it here.
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Ambiance Context */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-2">Ambiance & Vibe</h2>
-          <p className="text-sm text-slate-400 mb-6">Describe your restaurant's atmosphere, style, and what makes the experience special. The AI uses this to write authentic-sounding reviews.</p>
+        {/* Ambiance Card */}
+        <div className="bg-[#0F172A]/50 border border-white/5 rounded-[24px] p-8 shadow-xl backdrop-blur-sm">
+          <h2 className="text-xl font-bold text-white mb-2">Ambiance & Vibe</h2>
+          <p className="text-sm text-slate-400 mb-8">Describe your restaurant's atmosphere, style, and what makes the experience special.</p>
           
           <textarea 
             name="ambiance_context"
-            className="w-full h-32 bg-black/40 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm"
+            className="w-full h-40 bg-[#020617]/80 border border-white/10 rounded-2xl p-5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-[15px] leading-relaxed transition-all placeholder:text-slate-700"
             defaultValue={initialData?.ambiance_context || ''}
-            placeholder="e.g. Upscale Italian bistro with romantic candlelit tables, exposed brick walls, and soft jazz. Warm and intimate — perfect for date nights. Known for exceptional wine service and a welcoming, unhurried atmosphere."
+            placeholder="e.g. Upscale Italian bistro with romantic candlelit tables, exposed brick walls, and soft jazz. Warm and intimate — perfect for date nights..."
           />
         </div>
 
-        {/* Menu Context */}
-        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-2">Menu Items & Signature Dishes</h2>
-          <p className="text-sm text-slate-400 mb-4">List your key dishes, drinks, and specials. The AI will mention these by name in generated reviews — making them sound specific and authentic.</p>
-          <div className="mb-4 p-3 bg-indigo-500/5 border border-indigo-500/15 rounded-xl">
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              <span className="text-indigo-400 font-bold uppercase tracking-wider mr-1">✦ Pro Tip:</span>
-              Just paste a few dish names or your best-sellers. E.g. &quot;Truffle pasta, wagyu burger, tiramisu, espresso martini, weekend brunch specials&quot;
+        {/* Menu Items Card */}
+        <div className="bg-[#0F172A]/50 border border-white/5 rounded-[24px] p-8 shadow-xl backdrop-blur-sm">
+          <h2 className="text-xl font-bold text-white mb-2">Menu Items & Signature Dishes</h2>
+          <p className="text-sm text-slate-400 mb-8">List your key dishes, drinks, and specials. The AI will mention these by name in reviews.</p>
+          
+          <div className="mb-6 p-4 bg-indigo-500/5 border border-indigo-500/10 rounded-[18px]">
+            <p className="text-[12px] text-slate-400 leading-relaxed">
+              <span className="text-indigo-400 font-black uppercase tracking-[0.1em] text-[10px] mr-2">✦ Pro Tip:</span>
+              Just paste a few dish names. E.g. &quot;Truffle pasta, wagyu burger, tiramisu, espresso martini&quot;
             </p>
           </div>
+
           <textarea 
             name="menu_context"
-            className="w-full h-28 bg-black/40 border border-white/10 rounded-xl p-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-sm"
+            className="w-full h-40 bg-[#020617]/80 border border-white/10 rounded-2xl p-5 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 text-[15px] leading-relaxed transition-all placeholder:text-slate-700"
             defaultValue={initialData?.menu_context || ''}
-            placeholder="e.g. Handmade tagliatelle, truffle arancini, wood-fired margherita pizza, tiramisu, Aperol spritz, weekend brunch with bottomless mimosas..."
+            placeholder="e.g. Handmade tagliatelle, truffle arancini, wood-fired margherita pizza, tiramisu, Aperol spritz..."
           />
         </div>
 
-        <button 
-          type="submit"
-          disabled={isSaving}
-          className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 px-6 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50"
-        >
-          {isSaved ? (
-            <><CheckCircle2 size={18} /> Settings Saved</>
-          ) : isSaving ? (
-            'Saving...'
-          ) : (
-            'Save Profile & Settings'
-          )}
-        </button>
-      </form>
-
-      {/* Menu Upload (Separate from main form) */}
-      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
-        <h2 className="text-lg font-semibold text-white mb-2">Upload Menu (PDF or Images)</h2>
-        <p className="text-sm text-slate-400 mb-6">Upload multiple files if your menu has multiple pages.</p>
-        
-        {menuUrls.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {menuUrls.map((url: string, index: number) => (
-              <div key={url} className="flex items-center justify-between p-4 bg-black/40 rounded-xl border border-white/5">
-                <div className="flex items-center gap-3">
-                  <FileText size={20} className="text-blue-400" />
-                  <div>
-                    <a href={url} target="_blank" rel="noreferrer" className="text-sm text-slate-200 hover:text-white font-medium underline-offset-4 hover:underline">
-                      Menu Page {index + 1}
-                    </a>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => handleRemoveMenu(url)}
-                  disabled={isUploading}
-                  className="text-red-400 hover:text-red-300 p-2 rounded-lg hover:bg-red-400/10 transition-colors disabled:opacity-50"
-                  title="Remove Menu"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div>
-          <input 
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            className="hidden"
-            accept=".pdf,image/*"
-            multiple
-          />
+        {/* Save Button Bar */}
+        <div className="sticky bottom-8 z-10 pt-4">
           <button 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="w-full border-2 border-dashed border-white/10 rounded-xl p-8 text-center bg-white/[0.02] hover:bg-white/[0.04] transition-colors flex flex-col items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            type="submit"
+            disabled={isSaving}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.1em] py-5 px-8 rounded-2xl transition-all shadow-2xl shadow-indigo-600/40 flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]"
           >
-            <Upload size={32} className="text-indigo-400 mb-4" />
-            <p className="text-sm text-white font-medium">
-              {isUploading ? 'Uploading...' : 'Click to upload menu pages'}
-            </p>
-            <p className="text-xs text-slate-500 mt-2">You can select multiple files at once</p>
+            {isSaved ? (
+              <><CheckCircle2 size={24} /> Settings Saved Successfully</>
+            ) : isSaving ? (
+              <><Loader2 size={24} className="animate-spin" /> Saving Changes...</>
+            ) : (
+              'Save Profile & AI Context'
+            )}
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }
