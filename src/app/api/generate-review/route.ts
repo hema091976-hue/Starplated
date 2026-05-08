@@ -44,39 +44,37 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Valid rating (1-5) is required' }, { status: 400 });
     }
 
+    let restaurantName = 'this restaurant';
+    let fullContext = 'A welcoming local restaurant.';
+
     if (restaurantId === 'demo-restaurant') {
-      return NextResponse.json({
-        options: [
-          { type: 'The Foodie', text: 'Amazing food and great vibe!' },
-          { type: 'The Vibe', text: 'Loved the atmosphere here.' },
-          { type: 'The Local', text: 'My favorite spot in town.' }
-        ]
-      });
-    }
+      restaurantName = 'The Demo Bistro';
+      fullContext = 'Ambiance: A cozy, modern bistro with artisanal coffee and homemade pastries.\n\nMenu: Specialized in avocado toast, blueberry muffins, and single-origin pour-over coffee.';
+    } else {
+      const { data: restaurant, error: dbError } = await supabaseAdmin
+        .from('restaurants')
+        .select('business_name, ambiance_context, menu_context, menu_urls, google_place_id')
+        .eq('id', restaurantId)
+        .single();
 
-    const { data: restaurant, error: dbError } = await supabaseAdmin
-      .from('restaurants')
-      .select('business_name, ambiance_context, menu_context, menu_urls, google_place_id')
-      .eq('id', restaurantId)
-      .single();
+      if (dbError || !restaurant) {
+        return NextResponse.json({ error: `Restaurant not found in DB` }, { status: 404 });
+      }
 
-    if (dbError || !restaurant) {
-      return NextResponse.json({ error: `Restaurant not found in DB` }, { status: 404 });
+      restaurantName = (restaurant.business_name || 'this restaurant').trim();
+      const ambianceText   = restaurant.ambiance_context?.trim() || '';
+      const menuText       = restaurant.menu_context?.trim() || '';
+
+      const contextParts: string[] = [];
+      if (ambianceText) contextParts.push(`Ambiance: ${ambianceText}`);
+      if (menuText)     contextParts.push(`Menu: ${menuText}`);
+      fullContext = contextParts.join('\n\n') || 'A welcoming local restaurant.';
     }
 
     const apiKey = process.env.GOOGLE_AI_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: 'GOOGLE_AI_KEY is missing' }, { status: 500 });
     }
-
-    const restaurantName = (restaurant.business_name || 'this restaurant').trim();
-    const ambianceText   = restaurant.ambiance_context?.trim() || '';
-    const menuText       = restaurant.menu_context?.trim() || '';
-
-    const contextParts: string[] = [];
-    if (ambianceText) contextParts.push(`Ambiance: ${ambianceText}`);
-    if (menuText)     contextParts.push(`Menu: ${menuText}`);
-    const fullContext = contextParts.join('\n\n') || 'A welcoming local restaurant.';
 
     const prompt = `Generate exactly 3 realistic Google reviews for "${restaurantName}".
 Rating: ${rating} Stars
@@ -98,10 +96,7 @@ Rules:
 Return a JSON array of objects with "type" and "text" fields. 
 Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
 
-    // Added any possible "Gemini 3" or future-proof names just in case
     const modelsToTry = [
-      'models/gemini-3-flash',
-      'models/gemini-3-flash-preview',
       'models/gemini-2.0-flash-exp', 
       'models/gemini-2.0-flash',
       'models/gemini-1.5-flash', 
@@ -128,22 +123,21 @@ Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
         const parsed = extractJsonArray(responseText);
 
         if (parsed && parsed.length >= 3) {
-          logEvent(restaurantId, rating, sessionId);
+          if (restaurantId !== 'demo-restaurant') {
+            logEvent(restaurantId, rating, sessionId);
+          }
           return NextResponse.json({ options: parsed });
         }
       } catch (err: any) {
         console.error(`Attempt with ${modelName} failed:`, err.message);
         lastError = err;
-        // If it's NOT a "not found" error, we might have hit a real API issue (quota, etc.)
-        if (!err.message?.includes('not found')) {
-           break;
-        }
+        if (!err.message?.includes('not found')) break;
       }
     }
 
     return NextResponse.json({ 
       error: `AI Generation Failed. Last Error: ${lastError?.message || 'Unknown'}`,
-      details: `Available models for your key: Visit starplated.com/api/ai-debug to see the list.`
+      details: `Visit starplated.com/api/ai-debug to see supported models.`
     }, { status: 503 });
 
   } catch (outerError: any) {
