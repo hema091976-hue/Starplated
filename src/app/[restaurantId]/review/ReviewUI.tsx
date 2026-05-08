@@ -28,12 +28,6 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
   const [error, setError] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   
-  // Feedback state for low ratings
-  const [feedbackText, setFeedbackText] = useState('');
-  const [contactInfo, setContactInfo] = useState('');
-  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
-  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-  
   // Tutorial State
   const isDemo = restaurant.id === 'demo-restaurant';
   const [tutorialStep, setTutorialStep] = useState<number>(isDemo ? 1 : 0);
@@ -55,14 +49,12 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
     setSelectedTags([]); // Reset tags when rating changes
     if (isDemo && tutorialStep === 1) setTutorialStep(2);
     
-    // Auto-generate if rating is good
-    if (selectedRating >= 3) {
-      generateReviews(selectedRating);
-    }
+    // Auto-generate for all ratings
+    generateReviews(selectedRating);
   };
 
   const generateReviews = async (selectedRating: number = rating) => {
-    if (selectedRating < 3) return;
+    if (selectedRating < 1) return;
     
     setIsGenerating(true);
     setError(null);
@@ -98,14 +90,6 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
     }
   };
 
-  const submitPrivateFeedback = async () => {
-    setIsSubmittingFeedback(true);
-    // Simulate API call
-    await new Promise(r => setTimeout(r, 1500));
-    setFeedbackSubmitted(true);
-    setIsSubmittingFeedback(false);
-  };
-
   const copyAndRedirect = (text: string, index: number) => {
     navigator.clipboard.writeText(text);
     setCopiedIndex(index);
@@ -134,7 +118,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
              <div key={s.step} className="flex items-center gap-2">
                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
                  rating === 0 ? (s.step === 1 ? 'bg-[#1a73e8] text-white' : 'bg-gray-100 text-gray-400') :
-                 (options.length > 0 || rating < 3) ? (s.step === 3 ? 'bg-[#1a73e8] text-white' : 'bg-green-500 text-white') :
+                 (options.length > 0) ? (s.step === 3 ? 'bg-[#1a73e8] text-white' : 'bg-green-500 text-white') :
                  (s.step === 2 ? 'bg-[#1a73e8] text-white' : s.step === 1 ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400')
                }`}>
                  {rating > 0 && s.step === 1 ? <CheckCircle2 size={12} /> : 
@@ -191,8 +175,8 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
           {rating === 0 && <p className="text-[11px] text-[#70757a] mt-4 font-bold uppercase tracking-widest opacity-50">Tap a star to start</p>}
         </div>
 
-        {/* High Rating Flow (3-5 stars) */}
-        {rating >= 3 && (
+        {/* High Rating Flow (All stars) */}
+        {rating >= 1 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-500">
             
             {/* Tags Section */}
@@ -274,47 +258,6 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
                 </p>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Low Rating Flow (1-2 stars) */}
-        {rating > 0 && rating < 3 && !feedbackSubmitted && (
-          <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 animate-in fade-in slide-in-from-bottom-6 duration-500">
-            <h2 className="text-lg font-bold text-[#202124] mb-1">We're sorry your experience wasn't great.</h2>
-            <p className="text-sm text-[#70757a] mb-6 font-medium">Would you like to send private feedback to the restaurant?</p>
-            
-            <textarea
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder="Tell us what went wrong..."
-              className="w-full h-32 p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all mb-4"
-            />
-            
-            <input
-              type="text"
-              value={contactInfo}
-              onChange={(e) => setContactInfo(e.target.value)}
-              placeholder="Email or Phone (Optional)"
-              className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:ring-2 focus:ring-blue-100 focus:outline-none transition-all mb-6"
-            />
-            
-            <button
-              onClick={submitPrivateFeedback}
-              disabled={isSubmittingFeedback || !feedbackText}
-              className="w-full py-4 bg-[#202124] text-white rounded-2xl font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-95"
-            >
-              {isSubmittingFeedback ? <Loader2 size={20} className="animate-spin" /> : 'Submit Feedback'}
-            </button>
-          </div>
-        )}
-
-        {feedbackSubmitted && (
-          <div className="bg-white rounded-3xl p-10 shadow-sm border border-gray-100 text-center animate-in fade-in zoom-in duration-500">
-            <div className="w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-               <CheckCircle2 size={32} />
-            </div>
-            <h2 className="text-xl font-bold text-[#202124] mb-2">Thank You</h2>
-            <p className="text-sm text-[#70757a] leading-relaxed">Your feedback has been sent directly to the owner. We appreciate you helping us improve.</p>
           </div>
         )}
 
