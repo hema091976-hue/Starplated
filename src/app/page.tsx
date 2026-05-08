@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, BarChart3, Menu, Search, MapPin, ShieldCheck, TrendingUp, CheckCircle2, Zap, Clock, MousePointer2, Sparkles, QrCode, LayoutDashboard, MessageSquarePlus } from 'lucide-react';
+import { ArrowRight, BarChart3, Menu, Search, MapPin, ShieldCheck, TrendingUp, CheckCircle2, Zap, Clock, MousePointer2, Sparkles, QrCode, LayoutDashboard, MessageSquarePlus, Star } from 'lucide-react';
 import Image from 'next/image';
 
 export default function LandingPage() {
