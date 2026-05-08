@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         .single();
 
       if (dbError || !restaurant) {
-        return NextResponse.json({ error: `Restaurant not found` }, { status: 404 });
+        return NextResponse.json({ error: `Restaurant not found in DB: ${dbError?.message || 'Unknown'}` }, { status: 404 });
       }
 
       restaurantName = (restaurant.business_name || 'this restaurant').trim();
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
     const apiKey = process.env.GOOGLE_AI_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'System configuration error' }, { status: 500 });
+      return NextResponse.json({ error: 'GOOGLE_AI_KEY is missing from environment' }, { status: 500 });
     }
 
     const prompt = `Generate exactly 3 realistic Google reviews for "${restaurantName}".
@@ -96,15 +96,10 @@ Rules:
 Return a JSON array of objects with "type" and "text" fields. 
 Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
 
-    // Priority Order for Paid/High-Performance accounts:
-    // 1. Gemini 2.0 Flash (Cutting edge)
-    // 2. Gemini 1.5 Flash (Reliable speed)
-    // 3. Gemini 1.5 Pro (Highest quality)
     const modelsToTry = [
-      'models/gemini-2.0-flash-exp',
-      'models/gemini-2.0-flash',
       'models/gemini-1.5-flash', 
       'models/gemini-1.5-pro',
+      'models/gemini-2.0-flash-exp', 
       'models/gemini-pro'
     ];
     
@@ -136,21 +131,18 @@ Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
       } catch (err: any) {
         console.error(`Attempt with ${modelName} failed:`, err.message);
         lastError = err;
-        
-        // If it's a quota error, we stop and report
-        if (err.message?.includes('429')) break;
-        // Otherwise, try next model
+        if (!err.message?.includes('not found')) break;
       }
     }
 
     return NextResponse.json({ 
-      error: 'The AI is currently unavailable. Please try again in a moment.',
+      error: `AI Unavailable. Last Error: ${lastError?.message || 'Unknown'}`,
       details: lastError?.message
     }, { status: 503 });
 
   } catch (outerError: any) {
     console.error('DEBUG - Outer Error:', outerError);
-    return NextResponse.json({ error: 'System error' }, { status: 500 });
+    return NextResponse.json({ error: `System Error: ${outerError?.message || 'Unknown'}` }, { status: 500 });
   }
 }
 
