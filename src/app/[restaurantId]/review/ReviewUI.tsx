@@ -1,21 +1,66 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { Star, Copy, CheckCircle2, Loader2, MessageSquareQuote, Utensils, Zap, Sparkles, MousePointer2, Tag, ArrowRight, X, ChevronRight, User, Heart, ThumbsUp, MessageSquare, Pencil } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Star, Copy, CheckCircle2, Loader2, Utensils, Zap, Sparkles, X, ChevronRight, Heart, ThumbsUp, Pencil, Smile, Home, Leaf, MapPin, ShieldCheck, Lock, ChevronLeft } from 'lucide-react';
 
 interface ReviewOption {
   type: string;
   text: string;
   icon: any;
   title: string;
+  color: string;
+  bgColor: string;
 }
 
-const RATING_TAGS: Record<number, string[]> = {
-  5: ['Amazing food', 'Friendly staff', 'Great atmosphere', 'Fast service', 'Fresh ingredients', 'Cozy vibe'],
-  4: ['Amazing food', 'Friendly staff', 'Great atmosphere', 'Fast service', 'Fresh ingredients', 'Cozy vibe'],
-  3: ['Decent food', 'Long wait', 'Average service', 'Loud environment', 'Fair prices', 'Needs improvement'],
-  2: ['Slow service', 'Wrong order', 'Cold food', 'Rude staff', 'Poor cleanliness', 'Disappointing'],
-  1: ['Slow service', 'Wrong order', 'Cold food', 'Rude staff', 'Poor cleanliness', 'Terrible experience'],
+const RATING_TAGS: Record<number, any[]> = {
+  5: [
+    { id: 'food', label: 'Delicious Food', icon: <Utensils size={16} /> },
+    { id: 'staff', label: 'Friendly Staff', icon: <Smile size={16} /> },
+    { id: 'atmosphere', label: 'Great Atmosphere', icon: <Home size={16} /> },
+    { id: 'service', label: 'Fast Service', icon: <Zap size={16} /> },
+    { id: 'ingredients', label: 'Fresh Ingredients', icon: <Leaf size={16} /> },
+    { id: 'vibe', label: 'Cozy Vibe', icon: <Heart size={16} /> },
+  ],
+  4: [
+    { id: 'food', label: 'Delicious Food', icon: <Utensils size={16} /> },
+    { id: 'staff', label: 'Friendly Staff', icon: <Smile size={16} /> },
+    { id: 'atmosphere', label: 'Great Atmosphere', icon: <Home size={16} /> },
+    { id: 'service', label: 'Fast Service', icon: <Zap size={16} /> },
+    { id: 'ingredients', label: 'Fresh Ingredients', icon: <Leaf size={16} /> },
+    { id: 'vibe', label: 'Cozy Vibe', icon: <Heart size={16} /> },
+  ],
+  3: [
+    { id: 'food', label: 'Decent Food', icon: <Utensils size={16} /> },
+    { id: 'wait', label: 'Long Wait', icon: <Zap size={16} /> },
+    { id: 'service', label: 'Average Service', icon: <Smile size={16} /> },
+    { id: 'loud', label: 'Loud Environment', icon: <Home size={16} /> },
+    { id: 'price', label: 'Fair Prices', icon: <ThumbsUp size={16} /> },
+    { id: 'improve', label: 'Needs Improvement', icon: <Pencil size={16} /> },
+  ],
+  2: [
+    { id: 'service', label: 'Slow Service', icon: <Zap size={16} /> },
+    { id: 'order', label: 'Wrong Order', icon: <Utensils size={16} /> },
+    { id: 'food', label: 'Cold Food', icon: <Utensils size={16} /> },
+    { id: 'staff', label: 'Rude Staff', icon: <Smile size={16} /> },
+    { id: 'clean', label: 'Poor Cleanliness', icon: <Sparkles size={16} /> },
+    { id: 'vibe', label: 'Disappointing', icon: <ThumbsUp size={16} className="rotate-180" /> },
+  ],
+  1: [
+    { id: 'service', label: 'Slow Service', icon: <Zap size={16} /> },
+    { id: 'order', label: 'Wrong Order', icon: <Utensils size={16} /> },
+    { id: 'food', label: 'Cold Food', icon: <Utensils size={16} /> },
+    { id: 'staff', label: 'Rude Staff', icon: <Smile size={16} /> },
+    { id: 'clean', label: 'Poor Cleanliness', icon: <Sparkles size={16} /> },
+    { id: 'vibe', label: 'Terrible Experience', icon: <ThumbsUp size={16} className="rotate-180" /> },
+  ],
+};
+
+const RATING_MESSAGES: Record<number, string> = {
+  5: "Amazing! Thanks for the 5-star rating.",
+  4: "Great! Thanks for the 4-star rating.",
+  3: "Thanks for the feedback. We're always improving.",
+  2: "We're sorry it wasn't a 5-star experience.",
+  1: "We sincerely apologize for your experience."
 };
 
 export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId: string }) {
@@ -23,34 +68,26 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [options, setOptions] = useState<ReviewOption[]>([]);
+  const [selectedReviewIndex, setSelectedReviewIndex] = useState<number | null>(0);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [showGuide, setShowGuide] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   
-  // Tutorial State
-  const isDemo = restaurant.id === 'demo-restaurant';
-  const [tutorialStep, setTutorialStep] = useState<number>(isDemo ? 1 : 0);
-
   const currentTags = useMemo(() => RATING_TAGS[rating as keyof typeof RATING_TAGS] || RATING_TAGS[5], [rating]);
 
-  useEffect(() => {
-    if (isDemo && options.length > 0 && tutorialStep > 0 && tutorialStep < 3) {
-      setTutorialStep(3);
-    }
-  }, [options, isDemo, tutorialStep]);
+  // Use the new logo_url from db or fallback to the generic placeholder
+  const logoUrl = restaurant.logo_url || '/logo.png';
 
-  const toggleTag = (tag: string) => {
-    setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+  const toggleTag = (tagId: string) => {
+    setSelectedTags(prev => prev.includes(tagId) ? prev.filter(t => t !== tagId) : [...prev, tagId]);
   };
 
   const handleRatingClick = (selectedRating: number) => {
     setRating(selectedRating);
-    setSelectedTags([]); // Reset tags when rating changes
-    if (isDemo && tutorialStep === 1) setTutorialStep(2);
-    
-    // Auto-generate for all ratings
+    setSelectedTags([]); 
     generateReviews(selectedRating);
   };
 
@@ -59,7 +96,13 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
     
     setIsGenerating(true);
     setEditingIndex(null);
+    setSelectedReviewIndex(0); // Default select first
     setError(null);
+
+    // Map selected tag IDs to their actual labels for the API
+    const activeTagLabels = currentTags
+      .filter(t => selectedTags.includes(t.id))
+      .map(t => t.label);
 
     try {
       const response = await fetch('/api/generate-review', {
@@ -68,18 +111,19 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
         body: JSON.stringify({ 
           rating: selectedRating, 
           restaurantId: restaurant.id,
-          selectedTags: selectedTags,
+          selectedTags: activeTagLabels,
           sessionId: sessionId
         }),
       });
       
       const data = await response.json();
       if (response.ok && data.options) {
-        // Map types to icons/titles
         const mappedOptions = data.options.map((opt: any, i: number) => ({
           ...opt,
-          title: i === 0 ? 'Food Lover' : i === 1 ? 'The Vibe' : 'Local Favorite',
-          icon: i === 0 ? <Utensils size={18} /> : i === 1 ? <Sparkles size={18} /> : <Heart size={18} />
+          title: i === 0 ? 'Food Lover' : i === 1 ? 'Great Experience' : 'Local Favorite',
+          icon: i === 0 ? <Utensils size={24} /> : i === 1 ? <Sparkles size={24} /> : <MapPin size={24} />,
+          color: i === 0 ? 'text-[#3B82F6]' : i === 1 ? 'text-[#F59E0B]' : 'text-[#10B981]',
+          bgColor: i === 0 ? 'bg-[#EFF6FF]' : i === 1 ? 'bg-[#FEF3C7]' : 'bg-[#D1FAE5]',
         }));
         setOptions(mappedOptions);
       } else {
@@ -101,14 +145,12 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
   };
 
   const copyAndRedirect = (text: string, index: number) => {
-    // If they were editing this one, close the editor
     if (editingIndex === index) {
       setEditingIndex(null);
     }
     navigator.clipboard.writeText(text);
     setCopiedIndex(index);
     setShowGuide(true);
-    if (isDemo) setTutorialStep(0);
     
     const googleUrl = `https://search.google.com/local/writereview?placeid=${restaurant.google_place_id || 'ChIJN1t_tDeuEmsRUsoyG83frY4'}`;
     
@@ -118,239 +160,299 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
     }, 2500);
   };
 
-  return (
-    <div className="min-h-screen bg-[#F8F9FA] text-[#202124] font-sans selection:bg-[#1a73e8]/10 relative">
-      
-      {/* Step Indicator */}
-      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 px-6 py-3">
-        <div className="max-w-xl mx-auto flex items-center justify-between">
-           {[
-             { step: 1, label: 'Rate' },
-             { step: 2, label: 'Choose' },
-             { step: 3, label: 'Post' }
-           ].map((s, i) => (
-             <div key={s.step} className="flex items-center gap-2">
-               <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all ${
-                 rating === 0 ? (s.step === 1 ? 'bg-[#1a73e8] text-white' : 'bg-gray-100 text-gray-400') :
-                 (options.length > 0) ? (s.step === 3 ? 'bg-[#1a73e8] text-white' : 'bg-green-500 text-white') :
-                 (s.step === 2 ? 'bg-[#1a73e8] text-white' : s.step === 1 ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-400')
-               }`}>
-                 {rating > 0 && s.step === 1 ? <CheckCircle2 size={12} /> : 
-                  (options.length > 0 && s.step === 2) ? <CheckCircle2 size={12} /> : s.step}
-               </div>
-               <span className={`text-[11px] font-bold uppercase tracking-wider ${
-                 (rating === 0 && s.step === 1) || (rating > 0 && options.length === 0 && s.step === 2) || (options.length > 0 && s.step === 3)
-                 ? 'text-[#1a73e8]' : 'text-gray-400'
-               }`}>{s.label}</span>
-               {i < 2 && <ChevronRight size={12} className="text-gray-300 mx-1" />}
-             </div>
-           ))}
-        </div>
-      </div>
+  const scrollReviews = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 300;
+      scrollContainerRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
-      <div className="max-w-xl mx-auto px-6 pt-8 pb-24">
+  const step = rating === 0 ? 1 : (options.length === 0 || isGenerating ? 2 : 3);
+
+  return (
+    <div className="min-h-screen bg-[#FAFAFA] text-[#1E293B] font-sans selection:bg-[#3B82F6]/20 py-10 px-4 md:px-8">
+      
+      <div className="max-w-3xl mx-auto">
         
         {/* Header */}
-        <div className="text-center mb-10 animate-in fade-in slide-in-from-top-4 duration-500">
+        <div className="text-center mb-10">
           <div className="flex justify-center mb-4">
-             <div className="relative w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-100 p-2 overflow-hidden">
-                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+             <div className="w-20 h-20 bg-[#2D3748] rounded-full overflow-hidden shadow-md flex items-center justify-center border-4 border-white">
+                {logoUrl !== '/logo.png' ? (
+                  <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                ) : (
+                  <Utensils size={32} className="text-[#FABB05]" />
+                )}
              </div>
           </div>
-          <h1 className="text-2xl font-bold text-[#202124] mb-1">{restaurant.business_name}</h1>
-          <p className="text-[#70757a] text-sm font-medium">Share your dining experience in seconds.</p>
+          <h1 className="text-[28px] font-extrabold text-[#111827] mb-1">{restaurant.business_name}</h1>
+          <p className="text-[#6B7280] text-sm font-medium flex items-center justify-center gap-1.5">
+            Powered by StarPlated <Sparkles size={14} className="text-[#3B82F6]" />
+          </p>
         </div>
 
-        {/* Rating Section */}
-        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-6 text-center animate-in fade-in zoom-in duration-500">
-          <h2 className="text-lg font-bold text-[#202124] mb-1">How was your experience?</h2>
-          <p className="text-sm text-[#70757a] mb-8 font-medium">Your feedback helps local restaurants grow.</p>
+        {/* Step Indicator */}
+        <div className="flex items-center justify-center gap-2 md:gap-4 text-xs md:text-sm font-medium mb-10 overflow-x-auto whitespace-nowrap px-4 hide-scrollbar">
+          <div className={`flex items-center gap-2 ${step >= 1 ? 'text-[#3B82F6]' : 'text-[#9CA3AF]'}`}>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 1 ? 'bg-[#3B82F6] text-white' : 'bg-[#E5E7EB] text-[#6B7280]'}`}>1</div>
+            Rate your visit
+          </div>
+          <div className="w-4 md:w-8 h-px bg-[#E5E7EB]"></div>
+          <div className={`flex items-center gap-2 ${step >= 2 ? 'text-[#3B82F6]' : 'text-[#9CA3AF]'}`}>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 2 ? 'bg-[#3B82F6] text-white' : 'bg-[#E5E7EB] text-[#6B7280]'}`}>2</div>
+            Choose review style
+          </div>
+          <div className="w-4 md:w-8 h-px bg-[#E5E7EB]"></div>
+          <div className={`flex items-center gap-2 ${step >= 3 ? 'text-[#3B82F6]' : 'text-[#9CA3AF]'}`}>
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 3 ? 'bg-[#3B82F6] text-white' : 'bg-[#E5E7EB] text-[#6B7280]'}`}>3</div>
+            Post to Google
+          </div>
+        </div>
+
+        {/* Card 1: Rating & Tags */}
+        <div className="bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 md:p-10 mb-6 transition-all">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-[#111827] mb-2 flex items-center justify-center gap-2">
+              <Sparkles size={24} className="text-[#FABB05]" fill="#FABB05" />
+              How was your experience?
+            </h2>
+            <p className="text-[15px] text-[#6B7280]">Your feedback helps local restaurants grow.</p>
+          </div>
           
-          <div className="flex justify-center gap-3 mb-2">
+          <div className="flex justify-center gap-2 md:gap-4 mb-4">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
                 onMouseEnter={() => setHoveredRating(star)}
                 onMouseLeave={() => setHoveredRating(0)}
                 onClick={() => handleRatingClick(star)}
-                className="transition-all active:scale-75 duration-200"
+                className="transition-transform active:scale-75 duration-200"
               >
-                <Star
-                  size={44}
-                  className={`transition-all duration-300 ${
-                    star <= (hoveredRating || rating)
-                      ? 'fill-[#fbbc04] text-[#fbbc04] drop-shadow-sm scale-110'
-                      : 'fill-transparent text-[#bdc1c6]'
-                  }`}
-                />
+                <svg
+                  width="48"
+                  height="48"
+                  viewBox="0 0 24 24"
+                  fill={star <= (hoveredRating || rating) ? "#FABB05" : "none"}
+                  stroke={star <= (hoveredRating || rating) ? "#FABB05" : "#D1D5DB"}
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-all duration-300 ${star <= (hoveredRating || rating) ? 'scale-110 drop-shadow-sm' : ''}`}
+                >
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
               </button>
             ))}
           </div>
-          {rating === 0 && <p className="text-[11px] text-[#70757a] mt-4 font-bold uppercase tracking-widest opacity-50">Tap a star to start</p>}
-        </div>
+          
+          <p className={`text-center text-sm font-medium transition-opacity duration-300 h-6 ${rating > 0 ? 'text-[#6B7280] opacity-100' : 'opacity-0'}`}>
+            {RATING_MESSAGES[rating] || ''}
+          </p>
 
-        {/* High Rating Flow (All stars) */}
-        {rating >= 1 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-500">
-            
-            {/* Tags Section */}
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-              <p className="text-xs font-bold text-[#202124] mb-4 uppercase tracking-widest text-center">What stood out most?</p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {currentTags.map(tag => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleTag(tag)}
-                    className={`px-4 py-2 rounded-full text-sm font-bold transition-all duration-200 border ${
-                      selectedTags.includes(tag)
-                        ? 'bg-[#1a73e8] border-[#1a73e8] text-white shadow-md scale-105'
-                        : 'bg-gray-50 border-gray-100 text-[#70757a] hover:bg-gray-100'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))}
+          {/* Tags Section inside Card 1 */}
+          {rating > 0 && (
+            <div className="mt-10 border border-[#E5E7EB] rounded-[20px] p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="text-center mb-6">
+                <h3 className="text-[17px] font-bold text-[#111827] mb-1">What stood out most?</h3>
+                <p className="text-sm text-[#6B7280]">Select all that apply (optional)</p>
               </div>
               
-              <div className="flex justify-center mt-6">
-                <button
-                  onClick={() => generateReviews(rating)}
-                  disabled={isGenerating}
-                  className="flex items-center gap-2 text-xs font-bold text-[#1a73e8] hover:bg-blue-50 px-4 py-2 rounded-xl transition-all"
-                >
-                  {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                  {options.length > 0 ? 'Generate More Suggestions' : 'Generate Reviews'}
-                </button>
+              <div className="flex flex-wrap justify-center gap-3">
+                {currentTags.map(tag => {
+                  const isSelected = selectedTags.includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      onClick={() => toggleTag(tag.id)}
+                      className={`flex items-center gap-2.5 px-4 py-2.5 rounded-full text-[14px] font-medium transition-all duration-200 border ${
+                        isSelected
+                          ? 'bg-[#EFF6FF] border-[#3B82F6] text-[#2563EB] shadow-sm'
+                          : 'bg-white border-[#E5E7EB] text-[#4B5563] hover:border-[#D1D5DB] hover:bg-[#F9FAFB]'
+                      }`}
+                    >
+                      <span className={isSelected ? 'text-[#3B82F6]' : tag.color || 'text-[#9CA3AF]'}>
+                        {tag.icon}
+                      </span>
+                      {tag.label}
+                      {isSelected && (
+                        <div className="bg-[#3B82F6] text-white rounded-full w-4 h-4 flex items-center justify-center ml-1">
+                          <CheckCircle2 size={12} strokeWidth={4} />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
+          )}
+        </div>
 
-            {/* Review Cards */}
+        {/* Card 2: AI Generation Results */}
+        {(isGenerating || options.length > 0) && (
+          <div className="bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-6 md:p-10 mb-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-[#111827] mb-2 flex items-center justify-center gap-2">
+                <Sparkles size={24} className="text-[#FABB05]" fill="#FABB05" />
+                Choose a review to share
+              </h2>
+              <p className="text-[15px] text-[#6B7280]">Select the one that best matches your experience.</p>
+            </div>
+
             {isGenerating && !options.length && (
-              <div className="py-12 text-center">
-                <Loader2 className="w-8 h-8 text-[#1a73e8] animate-spin mx-auto mb-4" />
-                <p className="text-sm font-bold text-gray-400 animate-pulse uppercase tracking-widest">AI is drafting reviews...</p>
+              <div className="py-16 text-center">
+                <Loader2 className="w-10 h-10 text-[#3B82F6] animate-spin mx-auto mb-4" />
+                <p className="text-[15px] font-medium text-[#6B7280] animate-pulse">Our AI is crafting your options...</p>
               </div>
             )}
 
             {options.length > 0 && !isGenerating && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-2">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Choose a review to post</h3>
-                </div>
-                
-                {options.map((option, index) => (
-                  <div 
-                    key={index}
-                    className="bg-white border border-gray-100 rounded-3xl p-6 hover:shadow-md transition-all group border-b-4 border-b-transparent hover:border-b-[#1a73e8] relative"
-                  >
-                    {/* Edit Button */}
-                    {editingIndex !== index && (
-                      <button 
-                        onClick={() => setEditingIndex(index)}
-                        className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-50 hover:bg-[#1a73e8] text-gray-400 hover:text-white flex items-center justify-center transition-colors shadow-sm border border-gray-100"
-                        title="Edit Review"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                    )}
+              <div className="relative group">
+                {/* Desktop Carousel Arrows */}
+                <button 
+                  onClick={() => scrollReviews('left')} 
+                  className="hidden md:flex absolute -left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white border border-[#E5E7EB] rounded-full shadow-md items-center justify-center text-[#6B7280] hover:text-[#111827] z-10 hover:scale-105 transition-all"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button 
+                  onClick={() => scrollReviews('right')} 
+                  className="hidden md:flex absolute -right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white border border-[#E5E7EB] rounded-full shadow-md items-center justify-center text-[#6B7280] hover:text-[#111827] z-10 hover:scale-105 transition-all"
+                >
+                  <ChevronRight size={20} />
+                </button>
 
-                    <div className="flex items-center gap-3 mb-4 pr-10">
-                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-[#1a73e8] border border-gray-100 shrink-0">
-                        {option.icon}
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{option.title}</p>
-                        <div className="flex gap-0.5 mt-0.5">
-                          {[1,2,3,4,5].map(s => (
-                            <Star key={s} size={10} className={s <= rating ? 'fill-[#fbbc04] text-[#fbbc04]' : 'text-[#bdc1c6]'} />
-                          ))}
+                {/* Horizontal Scroll Container */}
+                <div 
+                  ref={scrollContainerRef}
+                  className="flex overflow-x-auto gap-4 md:gap-6 pb-6 pt-2 snap-x snap-mandatory hide-scrollbar -mx-2 px-2"
+                  style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                  {options.map((option, index) => {
+                    const isSelectedCard = selectedReviewIndex === index;
+                    return (
+                      <div 
+                        key={index}
+                        onClick={() => {
+                          if (editingIndex !== index) {
+                            setSelectedReviewIndex(index);
+                          }
+                        }}
+                        className={`min-w-[280px] md:min-w-[320px] flex-1 bg-white border-2 rounded-[24px] p-6 snap-center transition-all cursor-pointer relative flex flex-col ${
+                          isSelectedCard ? 'border-[#3B82F6] shadow-md' : 'border-[#F3F4F6] hover:border-[#E5E7EB]'
+                        }`}
+                      >
+                        {/* Checkmark Badge */}
+                        {isSelectedCard && (
+                          <div className="absolute -top-2 -right-2 w-7 h-7 bg-[#3B82F6] rounded-lg text-white flex items-center justify-center shadow-sm">
+                            <CheckCircle2 size={16} strokeWidth={3} />
+                          </div>
+                        )}
+
+                        {/* Top Icon & Title */}
+                        <div className="flex flex-col items-center mb-5 text-center">
+                          <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 ${option.bgColor} ${option.color}`}>
+                            {option.icon}
+                          </div>
+                          <h3 className="text-[17px] font-bold text-[#111827]">{option.title}</h3>
+                        </div>
+                        
+                        {/* Review Content */}
+                        <div className="flex-1 mb-6 text-center relative group/edit">
+                          {/* Edit Pencil (shows on hover or if selected) */}
+                          {editingIndex !== index && (
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); setEditingIndex(index); setSelectedReviewIndex(index); }}
+                              className="absolute -top-8 -right-2 w-8 h-8 rounded-full bg-[#F3F4F6] text-[#6B7280] flex items-center justify-center opacity-0 group-hover/edit:opacity-100 transition-opacity hover:bg-[#3B82F6] hover:text-white"
+                              title="Edit Review"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                          )}
+
+                          {editingIndex === index ? (
+                            <textarea 
+                              value={option.text}
+                              onChange={(e) => handleReviewEdit(index, e.target.value)}
+                              className="w-full h-32 p-3 bg-[#F9FAFB] border border-[#3B82F6] rounded-xl text-[14px] text-[#374151] leading-relaxed focus:ring-0 focus:outline-none transition-all resize-none text-center"
+                              autoFocus
+                              onBlur={() => setEditingIndex(null)}
+                            />
+                          ) : (
+                            <p 
+                              className="text-[14px] text-[#4B5563] leading-relaxed cursor-pointer"
+                              onClick={(e) => { e.stopPropagation(); setEditingIndex(index); setSelectedReviewIndex(index); }}
+                            >
+                              {option.text}
+                            </p>
+                          )}
+                        </div>
+                        
+                        {/* Action Button */}
+                        <div className="mt-auto">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); copyAndRedirect(option.text, index); }}
+                            className={`w-full py-3.5 rounded-xl text-[15px] font-bold shadow-sm transition-all flex items-center justify-center gap-2 ${
+                              isSelectedCard 
+                                ? 'bg-[#3B82F6] hover:bg-[#2563EB] text-white' 
+                                : 'bg-[#F3F4F6] text-[#4B5563] hover:bg-[#E5E7EB]'
+                            }`}
+                          >
+                            {copiedIndex === index ? 'Redirecting...' : 'Share on Google'}
+                          </button>
                         </div>
                       </div>
-                    </div>
-                    
-                    {editingIndex === index ? (
-                      <textarea 
-                        value={option.text}
-                        onChange={(e) => handleReviewEdit(index, e.target.value)}
-                        className="w-full h-24 p-3 mb-6 bg-blue-50/50 border border-blue-200 rounded-xl text-[15px] text-[#3c4043] leading-relaxed italic focus:ring-2 focus:ring-[#1a73e8] focus:outline-none transition-all resize-none"
-                        autoFocus
-                      />
-                    ) : (
-                      <p 
-                        className="text-[15px] text-[#3c4043] leading-relaxed italic mb-6 cursor-pointer hover:bg-gray-50 p-2 -mx-2 rounded-lg transition-colors"
-                        onClick={() => setEditingIndex(index)}
-                      >
-                        "{option.text}"
-                      </p>
-                    )}
-                    
-                    <button 
-                      onClick={() => copyAndRedirect(option.text, index)}
-                      className="w-full py-3.5 bg-[#1a73e8] hover:bg-[#1765cc] active:scale-95 text-white rounded-2xl text-[14px] font-bold shadow-sm transition-all flex items-center justify-center gap-2"
-                    >
-                      {copiedIndex === index ? <CheckCircle2 size={18} /> : <ThumbsUp size={18} />}
-                      {copiedIndex === index ? 'Copied & Redirecting...' : 'Share on Google'}
-                    </button>
-                  </div>
-                ))}
-                
-                <p className="text-center text-[11px] text-[#70757a] font-medium pt-2">
-                  You can edit your review before posting on Google.
-                </p>
+                    );
+                  })}
+                </div>
+
+                {/* Trust Footer inside Card 2 */}
+                <div className="mt-4 bg-[#F0F5FF] rounded-2xl py-4 px-6 flex items-center justify-center gap-3">
+                  <Lock size={16} className="text-[#3B82F6]" />
+                  <p className="text-[14px] text-[#1E293B] font-medium">You can edit your review before posting on Google.</p>
+                </div>
               </div>
             )}
           </div>
         )}
 
-        {/* Footer Brand */}
-        <div className="mt-12 text-center opacity-30">
-          <p className="text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2">
-            Powered by StarPlated <Sparkles size={10} />
-          </p>
+        {/* Page Footer */}
+        <div className="mt-8 mb-4 flex items-center justify-center gap-2 text-[#6B7280] opacity-80">
+          <ShieldCheck size={16} />
+          <p className="text-[13px] font-medium">Secure. Private. Trusted by restaurants.</p>
         </div>
-      </div>
 
-      {/* Tutorial Tooltip */}
-      {tutorialStep > 0 && isDemo && (
-        <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center px-6">
-           <div className="absolute inset-0 bg-[#202124]/40" />
-           <div className="relative bg-[#1a73e8] text-white p-6 rounded-3xl shadow-2xl max-w-xs w-full pointer-events-auto animate-in zoom-in-95 duration-300">
-              <p className="font-bold text-lg mb-2">Step {tutorialStep}</p>
-              <p className="text-sm text-white/90 leading-relaxed mb-6">
-                {tutorialStep === 1 ? "Start by giving us a star rating!" :
-                 tutorialStep === 2 ? "Now tap some tags that describe your experience." :
-                 "Final Step: Choose your favorite AI-drafted review and post it!"}
-              </p>
-              <button 
-                onClick={() => setTutorialStep(0)}
-                className="w-full py-2 bg-white/20 hover:bg-white/30 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
-              >
-                Got it
-              </button>
-           </div>
-        </div>
-      )}
+      </div>
 
       {/* Redirect Modal */}
       {showGuide && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center px-6 animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-[#202124]/90 backdrop-blur-sm" />
-          <div className="relative bg-white rounded-[40px] p-10 max-w-sm w-full shadow-2xl text-center">
-            <div className="w-20 h-20 bg-blue-50 text-[#1a73e8] rounded-full flex items-center justify-center mx-auto mb-8">
-               <Copy size={32} className="animate-pulse" />
+        <div className="fixed inset-0 z-[110] flex items-center justify-center px-4 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-[#111827]/60 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-[32px] p-10 max-w-sm w-full shadow-2xl text-center">
+            <div className="w-20 h-20 bg-[#EFF6FF] text-[#3B82F6] rounded-full flex items-center justify-center mx-auto mb-6">
+               <Copy size={32} />
             </div>
-            <h3 className="text-2xl font-bold text-[#202124] mb-3">Copied!</h3>
-            <p className="text-[#70757a] text-[15px] leading-relaxed mb-8">
-              We're opening Google. Just <span className="font-bold text-[#202124]">Paste</span> your review and select <span className="font-bold text-[#202124]">{rating} stars</span>.
+            <h3 className="text-2xl font-bold text-[#111827] mb-3">Review Copied!</h3>
+            <p className="text-[#4B5563] text-[15px] leading-relaxed mb-8">
+              We're opening Google now. Just <span className="font-bold text-[#111827]">Paste</span> your review and select <span className="font-bold text-[#111827]">{rating} stars</span>.
             </p>
-            <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-               <div className="h-full bg-[#1a73e8] animate-[progress_2.5s_linear_forwards]" />
+            <div className="w-full h-1.5 bg-[#F3F4F6] rounded-full overflow-hidden">
+               <div className="h-full bg-[#3B82F6] animate-[progress_2.5s_linear_forwards]" />
             </div>
           </div>
         </div>
       )}
 
       <style jsx global>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
         @keyframes progress {
           from { width: 0%; }
           to { width: 100%; }

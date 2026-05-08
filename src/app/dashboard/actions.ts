@@ -14,6 +14,7 @@ export async function updateSettings(formData: FormData) {
   const googlePlaceId   = formData.get('google_place_id') as string
   const ambianceContext = formData.get('ambiance_context') as string
   const menuContext     = formData.get('menu_context') as string
+  const logoUrl         = formData.get('logo_url') as string
 
   const { error } = await supabase
     .from('restaurants')
@@ -22,6 +23,7 @@ export async function updateSettings(formData: FormData) {
       google_place_id:  googlePlaceId,
       ambiance_context: ambianceContext,
       menu_context:     menuContext,
+      logo_url:         logoUrl,
     })
     .eq('id', user.id)
 

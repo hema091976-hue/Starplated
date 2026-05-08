@@ -84,6 +84,24 @@ export function SettingsForm({ initialData }: { initialData: any }) {
             </div>
 
             <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1.5" htmlFor="logo_url">Logo URL (Optional)</label>
+              <p className="text-xs text-slate-500 mb-2">Paste a link to your restaurant's logo (PNG/JPG) to display it on the review page.</p>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <LinkIcon size={16} className="text-slate-500" />
+                </div>
+                <input 
+                  id="logo_url"
+                  name="logo_url"
+                  type="url" 
+                  defaultValue={initialData?.logo_url || ''}
+                  placeholder="https://example.com/logo.png"
+                  className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-sm font-medium text-slate-300" htmlFor="google_place_id">Google Place ID</label>
                 <a 

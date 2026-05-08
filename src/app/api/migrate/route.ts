@@ -21,7 +21,18 @@ export async function GET() {
       results.push(`restaurants.menu_context FAILED: ${e.message}`);
     }
 
-    // 2. Add session_id to analytics_events
+    // 2. Add logo_url to restaurants
+    try {
+      const { error } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS logo_url text;`
+      });
+      if (error) throw error;
+      results.push('restaurants.logo_url added or already exists');
+    } catch (e: any) {
+      results.push(`restaurants.logo_url FAILED: ${e.message}`);
+    }
+
+    // 3. Add session_id to analytics_events
     try {
       const { error } = await supabaseAdmin.rpc('exec_sql', {
         sql: `ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS session_id text;`
