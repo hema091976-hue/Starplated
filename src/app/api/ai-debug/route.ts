@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const maxDuration = 30;
 
@@ -10,25 +9,24 @@ export async function GET() {
       return NextResponse.json({ error: 'GOOGLE_AI_KEY is missing from Vercel' }, { status: 500 });
     }
 
-    const testModels = [
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-latest',
-      'gemini-1.5-pro',
-      'gemini-2.0-flash-exp',
-      'gemini-pro'
-    ];
-
+    // Try both v1 and v1beta to see which one responds
+    const endpoints = ['v1', 'v1beta'];
     const results: any[] = [];
 
-    for (const modelName of testModels) {
+    for (const apiVersion of endpoints) {
       try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent("Reply with 'OK'");
-        const text = result.response.text();
-        results.push({ model: modelName, status: 'SUCCESS', response: text });
+        const url = `https://generativelanguage.googleapis.com/${apiVersion}/models?key=${apiKey}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        results.push({ 
+          apiVersion, 
+          status: response.status, 
+          models: data.models?.map((m: any) => m.name) || [],
+          error: data.error
+        });
       } catch (err: any) {
-        results.push({ model: modelName, status: 'FAILED', error: err.message });
+        results.push({ apiVersion, status: 'FETCH_ERROR', error: err.message });
       }
     }
 
@@ -36,7 +34,7 @@ export async function GET() {
       success: true, 
       results,
       apiKeySnippet: `${apiKey.substring(0, 6)}...${apiKey.substring(apiKey.length - 4)}`,
-      help: "If all FAILED, your API Key is likely invalid or the 'Generative Language API' is not enabled in your Google project."
+      instruction: "If 'models' is empty in both, go to AI Studio -> Settings -> API Key and ensure the project has 'Generative Language API' enabled."
     });
 
   } catch (outerError: any) {
