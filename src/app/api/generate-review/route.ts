@@ -61,12 +61,12 @@ export async function POST(request: Request) {
       .single();
 
     if (dbError || !restaurant) {
-      return NextResponse.json({ error: `Restaurant not found in DB: ${dbError?.message || 'Unknown'}` }, { status: 404 });
+      return NextResponse.json({ error: `Restaurant not found in DB` }, { status: 404 });
     }
 
     const apiKey = process.env.GOOGLE_AI_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'GOOGLE_AI_KEY is missing from Vercel environment variables' }, { status: 500 });
+      return NextResponse.json({ error: 'GOOGLE_AI_KEY is missing' }, { status: 500 });
     }
 
     const restaurantName = (restaurant.business_name || 'this restaurant').trim();
@@ -97,60 +97,51 @@ Rules:
 
 Return a JSON array of objects with "type" and "text" fields.`;
 
-    try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      
-      // Using gemini-1.5-flash-latest which is the correct alias for the v1beta API
-      const model = genAI.getGenerativeModel({ 
-        model: 'gemini-1.5-flash-latest',
-        generationConfig: {
-          responseMimeType: 'application/json',
-          temperature: 0.9,
-          topP: 0.95,
-          maxOutputTokens: 1000,
-        },
-        safetySettings: [
-          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        ]
-      });
+    // Try multiple model names in order of preference
+    const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro'];
+    let lastError: any = null;
 
-      const result = await model.generateContent(prompt);
-      
-      if (!result.response) {
-         throw new Error('Gemini returned an empty response object');
+    for (const modelName of modelsToTry) {
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ 
+          model: modelName,
+          generationConfig: {
+            responseMimeType: 'application/json',
+            temperature: 0.9,
+          },
+          safetySettings: [
+            { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+            { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          ]
+        });
+
+        const result = await model.generateContent(prompt);
+        const responseText = result.response.text();
+        const parsed = extractJsonArray(responseText);
+
+        if (parsed && parsed.length >= 3) {
+          logEvent(restaurantId, rating, sessionId);
+          return NextResponse.json({ options: parsed });
+        }
+      } catch (err: any) {
+        console.error(`Attempt with ${modelName} failed:`, err.message);
+        lastError = err;
+        // Continue to next model if it's a "not found" error
+        if (!err.message?.includes('not found') && !err.message?.includes('404')) {
+           // If it's a safety or quota error, stop and report it
+           break;
+        }
       }
-
-      const responseText = result.response.text();
-      const parsed = extractJsonArray(responseText);
-
-      if (parsed && parsed.length >= 3) {
-        logEvent(restaurantId, rating, sessionId);
-        return NextResponse.json({ options: parsed });
-      }
-
-      throw new Error(`AI generated content but failed JSON parsing. Raw: ${responseText.substring(0, 100)}...`);
-
-    } catch (geminiError: any) {
-      console.error('DEBUG - Gemini Error:', geminiError);
-      
-      const errorMsg = geminiError?.message || 'Unknown Gemini Error';
-      
-      // Check if it's a model not found error and try a fallback model name
-      if (errorMsg.includes('not found')) {
-         return NextResponse.json({ 
-           error: 'AI Model configuration error. Attempting to use fallback model...',
-           details: 'Trying gemini-pro...'
-         }, { status: 503 });
-      }
-
-      return NextResponse.json({ 
-        error: `AI Error: ${errorMsg}`,
-        details: geminiError?.message
-      }, { status: 503 });
     }
+
+    // If we get here, all models failed
+    return NextResponse.json({ 
+      error: `AI Generation Failed. Last Error: ${lastError?.message || 'Unknown'}`,
+      details: 'Please ensure your Google AI Key has access to Gemini 1.5 Flash or Gemini Pro.'
+    }, { status: 503 });
 
   } catch (outerError: any) {
     console.error('DEBUG - Outer Error:', outerError);
