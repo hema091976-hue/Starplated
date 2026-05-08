@@ -61,12 +61,12 @@ export async function POST(request: Request) {
       .single();
 
     if (dbError || !restaurant) {
-      return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
+      return NextResponse.json({ error: `Restaurant not found in DB: ${dbError?.message || 'Unknown'}` }, { status: 404 });
     }
 
     const apiKey = process.env.GOOGLE_AI_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'AI key not configured in environment' }, { status: 500 });
+      return NextResponse.json({ error: 'GOOGLE_AI_KEY is missing from Vercel environment variables' }, { status: 500 });
     }
 
     const restaurantName = (restaurant.business_name || 'this restaurant').trim();
@@ -116,6 +116,12 @@ Return a JSON array of objects with "type" and "text" fields.`;
       });
 
       const result = await model.generateContent(prompt);
+      
+      // Detailed error logging for response
+      if (!result.response) {
+         throw new Error('Gemini returned an empty response object');
+      }
+
       const responseText = result.response.text();
       const parsed = extractJsonArray(responseText);
 
@@ -124,29 +130,25 @@ Return a JSON array of objects with "type" and "text" fields.`;
         return NextResponse.json({ options: parsed });
       }
 
-      throw new Error('AI failed to produce a valid review list format');
+      throw new Error(`AI generated content but failed JSON parsing. Raw: ${responseText.substring(0, 100)}...`);
 
     } catch (geminiError: any) {
-      console.error('Gemini error:', geminiError?.message ?? geminiError);
+      console.error('DEBUG - Gemini Error:', geminiError);
       
-      // Check if it's a quota error
-      const errorMsg = geminiError?.message || '';
-      if (errorMsg.includes('429') || errorMsg.includes('quota')) {
-        return NextResponse.json({ 
-          error: 'The AI is currently busy. Please try again in 60 seconds.',
-          details: 'QUOTA_EXCEEDED'
-        }, { status: 429 });
-      }
-
+      const errorMsg = geminiError?.message || 'Unknown Gemini Error';
+      
+      // Expose error directly to user temporarily for debugging
       return NextResponse.json({ 
-        error: 'The AI is currently resting. Please try again in a moment.',
-        details: geminiError?.message 
+        error: `AI Error: ${errorMsg}`,
+        details: geminiError?.stack || 'No stack trace'
       }, { status: 503 });
     }
 
   } catch (outerError: any) {
-    console.error('generate-review fatal error:', outerError?.message ?? outerError);
-    return NextResponse.json({ error: 'System error. Please try again.' }, { status: 500 });
+    console.error('DEBUG - Outer Error:', outerError);
+    return NextResponse.json({ 
+      error: `System Error: ${outerError?.message || 'Unknown'}` 
+    }, { status: 500 });
   }
 }
 
