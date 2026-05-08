@@ -79,19 +79,20 @@ export async function POST(request: Request) {
     const prompt = `Generate exactly 3 realistic Google reviews for "${restaurantName}".
 Rating: ${rating} Stars
 Context: ${fullContext}
-Tags: ${selectedTags?.join(', ') || 'none'}
+Selected Tags: ${selectedTags?.join(', ') || 'none'}
 
 Personas:
-1. "The Foodie": focused on tastes/dishes
-2. "The Vibe": atmosphere/service
-3. "The Local": punchy/casual
+1. "Food Lover": focus on the taste, quality, and specific menu items.
+2. "The Vibe": focus on the atmosphere, decor, and the feeling of being there.
+3. "Local Favorite": focus on the service, reliability, and being a regular.
 
-Rules:
+Instructions:
+- Incorporate the "Selected Tags" naturally into the text.
 - NO EMOJIS.
 - NO QUOTES.
-- Natural, human-like tone.
+- Natural, human-like tone (not overly formal).
 - Matches sentiment of ${rating} stars exactly.
-- Length: 2-5 sentences.
+- Length: 2-4 sentences maximum.
 
 Return a JSON array of objects with "type" and "text" fields. 
 Return ONLY the raw JSON array. Do not include any markdown or commentary.`;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Star, Copy, CheckCircle2, Loader2, MessageSquareQuote, Utensils, Zap, Sparkles, MousePointer2, Tag, ArrowRight, X, ChevronRight, User, Heart, ThumbsUp, MessageSquare } from 'lucide-react';
+import { Star, Copy, CheckCircle2, Loader2, MessageSquareQuote, Utensils, Zap, Sparkles, MousePointer2, Tag, ArrowRight, X, ChevronRight, User, Heart, ThumbsUp, MessageSquare, Pencil } from 'lucide-react';
 
 interface ReviewOption {
   type: string;
@@ -27,6 +27,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
   const [showGuide, setShowGuide] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   
   // Tutorial State
   const isDemo = restaurant.id === 'demo-restaurant';
@@ -57,6 +58,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
     if (selectedRating < 1) return;
     
     setIsGenerating(true);
+    setEditingIndex(null);
     setError(null);
 
     try {
@@ -90,7 +92,19 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
     }
   };
 
+  const handleReviewEdit = (index: number, newText: string) => {
+    setOptions(prev => {
+      const newOptions = [...prev];
+      newOptions[index].text = newText;
+      return newOptions;
+    });
+  };
+
   const copyAndRedirect = (text: string, index: number) => {
+    // If they were editing this one, close the editor
+    if (editingIndex === index) {
+      setEditingIndex(null);
+    }
     navigator.clipboard.writeText(text);
     setCopiedIndex(index);
     setShowGuide(true);
@@ -166,7 +180,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
                   className={`transition-all duration-300 ${
                     star <= (hoveredRating || rating)
                       ? 'fill-[#fbbc04] text-[#fbbc04] drop-shadow-sm scale-110'
-                      : 'fill-transparent text-[#E8EAED]'
+                      : 'fill-transparent text-[#bdc1c6]'
                   }`}
                 />
               </button>
@@ -227,26 +241,53 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
                 {options.map((option, index) => (
                   <div 
                     key={index}
-                    onClick={() => copyAndRedirect(option.text, index)}
-                    className="bg-white border border-gray-100 rounded-3xl p-6 hover:shadow-md transition-all cursor-pointer group active:scale-[0.98] border-b-4 border-b-transparent hover:border-b-[#1a73e8]"
+                    className="bg-white border border-gray-100 rounded-3xl p-6 hover:shadow-md transition-all group border-b-4 border-b-transparent hover:border-b-[#1a73e8] relative"
                   >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-[#1a73e8] border border-gray-100">
+                    {/* Edit Button */}
+                    {editingIndex !== index && (
+                      <button 
+                        onClick={() => setEditingIndex(index)}
+                        className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-50 hover:bg-[#1a73e8] text-gray-400 hover:text-white flex items-center justify-center transition-colors shadow-sm border border-gray-100"
+                        title="Edit Review"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    )}
+
+                    <div className="flex items-center gap-3 mb-4 pr-10">
+                      <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-[#1a73e8] border border-gray-100 shrink-0">
                         {option.icon}
                       </div>
                       <div>
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{option.title}</p>
                         <div className="flex gap-0.5 mt-0.5">
                           {[1,2,3,4,5].map(s => (
-                            <Star key={s} size={10} className={s <= rating ? 'fill-[#fbbc04] text-[#fbbc04]' : 'text-gray-200'} />
+                            <Star key={s} size={10} className={s <= rating ? 'fill-[#fbbc04] text-[#fbbc04]' : 'text-[#bdc1c6]'} />
                           ))}
                         </div>
                       </div>
                     </div>
                     
-                    <p className="text-[15px] text-[#3c4043] leading-relaxed italic mb-6">"{option.text}"</p>
+                    {editingIndex === index ? (
+                      <textarea 
+                        value={option.text}
+                        onChange={(e) => handleReviewEdit(index, e.target.value)}
+                        className="w-full h-24 p-3 mb-6 bg-blue-50/50 border border-blue-200 rounded-xl text-[15px] text-[#3c4043] leading-relaxed italic focus:ring-2 focus:ring-[#1a73e8] focus:outline-none transition-all resize-none"
+                        autoFocus
+                      />
+                    ) : (
+                      <p 
+                        className="text-[15px] text-[#3c4043] leading-relaxed italic mb-6 cursor-pointer hover:bg-gray-50 p-2 -mx-2 rounded-lg transition-colors"
+                        onClick={() => setEditingIndex(index)}
+                      >
+                        "{option.text}"
+                      </p>
+                    )}
                     
-                    <button className="w-full py-3.5 bg-[#1a73e8] hover:bg-[#1765cc] text-white rounded-2xl text-[14px] font-bold shadow-sm transition-all flex items-center justify-center gap-2">
+                    <button 
+                      onClick={() => copyAndRedirect(option.text, index)}
+                      className="w-full py-3.5 bg-[#1a73e8] hover:bg-[#1765cc] active:scale-95 text-white rounded-2xl text-[14px] font-bold shadow-sm transition-all flex items-center justify-center gap-2"
+                    >
                       {copiedIndex === index ? <CheckCircle2 size={18} /> : <ThumbsUp size={18} />}
                       {copiedIndex === index ? 'Copied & Redirecting...' : 'Share on Google'}
                     </button>
