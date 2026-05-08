@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Star, Copy, CheckCircle2, Loader2, MessageSquareQuote, Utensils, Zap, Sparkles, MousePointer2, Tag } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Star, Copy, CheckCircle2, Loader2, MessageSquareQuote, Utensils, Zap, Sparkles, MousePointer2, Tag, ArrowRight, X } from 'lucide-react';
 
 interface ReviewOption {
   type: string;
@@ -24,15 +24,22 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
   const [showGuide, setShowGuide] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  
+  // Tutorial State
+  const isDemo = restaurant.id === 'demo-restaurant';
+  const [tutorialStep, setTutorialStep] = useState<number>(isDemo ? 1 : 0);
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-    );
+    setSelectedTags(prev => {
+      const newTags = prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag];
+      if (isDemo && tutorialStep === 2) setTutorialStep(3);
+      return newTags;
+    });
   };
 
   const handleRatingClick = (selectedRating: number) => {
     setRating(selectedRating);
+    if (isDemo && tutorialStep === 1) setTutorialStep(2);
     generateReviews(selectedRating);
   };
 
@@ -59,6 +66,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
       const data = await response.json();
       if (response.ok && data.options && data.options.length > 0) {
         setOptions(data.options);
+        if (isDemo && tutorialStep >= 2) setTutorialStep(4);
       } else {
         setError(data.error || 'Something went wrong. Please try again.');
       }
@@ -74,6 +82,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
     navigator.clipboard.writeText(text);
     setCopiedIndex(index);
     setShowGuide(true);
+    if (isDemo) setTutorialStep(0); // End tutorial
     
     const googleUrl = `https://search.google.com/local/writereview?placeid=${restaurant.google_place_id || 'ChIJN1t_tDeuEmsRUsoyG83frY4'}`;
     
@@ -86,9 +95,66 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
   return (
     <div className="min-h-screen bg-[#FFFFFF] text-[#3c4043] font-sans selection:bg-[#1a73e8]/20 relative overflow-x-hidden">
       
+      {/* Tutorial Overlay */}
+      {tutorialStep > 0 && isDemo && (
+        <div className="fixed inset-0 z-[60] pointer-events-none">
+          <div className="absolute inset-0 bg-[#202124]/40 backdrop-blur-[2px]" />
+          
+          {tutorialStep === 1 && (
+            <div className="absolute top-[320px] left-1/2 -translate-x-1/2 w-full max-w-xs animate-bounce pointer-events-auto">
+               <div className="bg-[#1a73e8] text-white p-4 rounded-2xl shadow-2xl relative">
+                  <p className="font-bold text-center">Step 1: Tap the Stars</p>
+                  <p className="text-xs text-white/80 text-center mt-1">Choose your rating to see the AI magic.</p>
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#1a73e8] rotate-45" />
+               </div>
+            </div>
+          )}
+
+          {tutorialStep === 2 && (
+            <div className="absolute top-[480px] left-1/2 -translate-x-1/2 w-full max-w-xs animate-in slide-in-from-bottom-4 pointer-events-auto">
+               <div className="bg-[#1a73e8] text-white p-4 rounded-2xl shadow-2xl relative">
+                  <p className="font-bold text-center">Step 2: Add Details</p>
+                  <p className="text-xs text-white/80 text-center mt-1">Tap tags like "Delicious" or "Friendly" for more accurate reviews.</p>
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#1a73e8] rotate-45" />
+                  <button onClick={() => setTutorialStep(3)} className="mt-3 w-full py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors">
+                    I'm done adding tags
+                  </button>
+               </div>
+            </div>
+          )}
+
+          {tutorialStep === 3 && (
+            <div className="absolute top-[580px] left-1/2 -translate-x-1/2 w-full max-w-xs animate-in slide-in-from-bottom-4 pointer-events-auto">
+               <div className="bg-[#1a73e8] text-white p-4 rounded-2xl shadow-2xl relative">
+                  <p className="font-bold text-center">Step 3: Generate</p>
+                  <p className="text-xs text-white/80 text-center mt-1">Click the button below to craft your custom reviews.</p>
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#1a73e8] rotate-45" />
+               </div>
+            </div>
+          )}
+
+          {tutorialStep === 4 && (
+            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-full max-w-xs animate-in slide-in-from-bottom-4 pointer-events-auto">
+               <div className="bg-[#1a73e8] text-white p-4 rounded-2xl shadow-2xl relative">
+                  <p className="font-bold text-center">Step 4: Copy & Post</p>
+                  <p className="text-xs text-white/80 text-center mt-1">Choose your favorite review! We'll copy it and open Google for you.</p>
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-[#1a73e8] rotate-45" />
+               </div>
+            </div>
+          )}
+
+          <button 
+            onClick={() => setTutorialStep(0)}
+            className="absolute top-6 right-6 w-10 h-10 bg-white/20 hover:bg-white/40 rounded-full flex items-center justify-center text-white pointer-events-auto transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      )}
+
       {/* Paste Guide Overlay */}
       {showGuide && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 animate-in fade-in zoom-in duration-300">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center px-6 animate-in fade-in zoom-in duration-300">
           <div className="absolute inset-0 bg-[#202124]/80 backdrop-blur-sm" />
           <div className="relative bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center">
             <div className="w-16 h-16 bg-[#e8f0fe] rounded-full flex items-center justify-center mx-auto mb-6">
@@ -155,7 +221,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
         </div>
 
         {/* Rating & Tags Section */}
-        <div className="border border-[#dadce0] rounded-2xl p-6 sm:p-8 mb-8 bg-[#f8f9fa] shadow-sm">
+        <div className={`border rounded-2xl p-6 sm:p-8 mb-8 transition-all duration-300 ${tutorialStep === 1 ? 'relative z-[61] bg-white ring-4 ring-[#1a73e8] shadow-2xl scale-[1.02]' : 'border-[#dadce0] bg-[#f8f9fa]'}`}>
           <h2 className="text-[18px] font-medium text-[#202124] mb-6 text-center">
             Rate your experience
           </h2>
@@ -186,7 +252,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
           <div className={`space-y-6 transition-all duration-500 overflow-hidden ${rating > 0 ? 'max-h-[500px] opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
             <div className="h-px bg-[#dadce0] w-full mb-6" />
             
-            <div>
+            <div className={tutorialStep === 2 ? 'relative z-[61] bg-white p-4 rounded-xl ring-2 ring-[#1a73e8]' : ''}>
               <p className="text-[14px] font-bold text-[#202124] mb-4 uppercase tracking-wider text-center">
                 What stood out? (Optional)
               </p>
@@ -212,7 +278,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
               </div>
             </div>
 
-            <div className="flex justify-center pt-4">
+            <div className={`flex justify-center pt-4 ${tutorialStep === 3 ? 'relative z-[61] scale-110' : ''}`}>
               <button
                 onClick={() => generateReviews(rating)}
                 disabled={isGenerating}
@@ -250,7 +316,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
 
         {/* Review Options */}
         {options.length > 0 && !isGenerating && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 mt-12">
+          <div className={`animate-in fade-in slide-in-from-bottom-4 duration-500 mt-12 ${tutorialStep === 4 ? 'relative z-[61]' : ''}`}>
             <div className="flex items-center justify-between mb-6 px-1">
               <h3 className="text-[14px] font-bold text-[#202124] uppercase tracking-wider">
                 Select a review to post
