@@ -29,10 +29,20 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
   const isDemo = restaurant.id === 'demo-restaurant';
   const [tutorialStep, setTutorialStep] = useState<number>(isDemo ? 1 : 0);
 
+  // Sync tutorial with results
+  useEffect(() => {
+    if (isDemo && options.length > 0 && tutorialStep > 0 && tutorialStep < 4) {
+      setTutorialStep(4);
+    }
+  }, [options, isDemo, tutorialStep]);
+
   const toggleTag = (tag: string) => {
     setSelectedTags(prev => {
       const newTags = prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag];
-      if (isDemo && tutorialStep === 2) setTutorialStep(3);
+      // Only advance to Step 3 if we don't have reviews yet
+      if (isDemo && tutorialStep === 2 && options.length === 0) {
+        setTutorialStep(3);
+      }
       return newTags;
     });
   };
@@ -66,7 +76,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
       const data = await response.json();
       if (response.ok && data.options && data.options.length > 0) {
         setOptions(data.options);
-        if (isDemo && tutorialStep >= 2) setTutorialStep(4);
+        // Step 4 will be set by the useEffect
       } else {
         setError(data.error || 'Something went wrong. Please try again.');
       }
@@ -98,7 +108,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
       {/* Tutorial Overlay */}
       {tutorialStep > 0 && isDemo && (
         <div className="fixed inset-0 z-[60] pointer-events-none">
-          <div className="absolute inset-0 bg-[#202124]/40 backdrop-blur-[2px]" />
+          <div className="absolute inset-0 bg-[#202124]/30" />
           
           {tutorialStep === 1 && (
             <div className="absolute top-[320px] left-1/2 -translate-x-1/2 w-full max-w-xs animate-bounce pointer-events-auto">
@@ -134,7 +144,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
           )}
 
           {tutorialStep === 4 && (
-            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 w-full max-w-xs animate-in slide-in-from-bottom-4 pointer-events-auto">
+            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-full max-w-xs animate-in slide-in-from-bottom-4 pointer-events-auto z-[62]">
                <div className="bg-[#1a73e8] text-white p-4 rounded-2xl shadow-2xl relative">
                   <p className="font-bold text-center">Step 4: Copy & Post</p>
                   <p className="text-xs text-white/80 text-center mt-1">Choose your favorite review! We'll copy it and open Google for you.</p>
@@ -301,22 +311,9 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
           </div>
         )}
 
-        {/* Error State */}
-        {error && !isGenerating && (
-          <div className="border border-red-200 bg-red-50 rounded-2xl p-6 text-center animate-in fade-in duration-300">
-            <p className="text-red-600 font-medium text-[15px] mb-4">⚠️ {error}</p>
-            <button
-              onClick={() => generateReviews(rating)}
-              className="text-[13px] font-bold text-[#1a73e8] bg-[#e8f0fe] px-4 py-2 rounded-xl hover:bg-[#d2e3fc] transition-colors"
-            >
-              Try Again
-            </button>
-          </div>
-        )}
-
         {/* Review Options */}
         {options.length > 0 && !isGenerating && (
-          <div className={`animate-in fade-in slide-in-from-bottom-4 duration-500 mt-12 ${tutorialStep === 4 ? 'relative z-[61]' : ''}`}>
+          <div className={`animate-in fade-in slide-in-from-bottom-4 duration-500 mt-12 ${tutorialStep === 4 ? 'relative z-[61] ring-4 ring-[#1a73e8] ring-offset-4 rounded-3xl shadow-2xl bg-white p-4' : ''}`}>
             <div className="flex items-center justify-between mb-6 px-1">
               <h3 className="text-[14px] font-bold text-[#202124] uppercase tracking-wider">
                 Select a review to post
