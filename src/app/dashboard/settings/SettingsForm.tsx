@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { Upload, FileText, CheckCircle2, Link as LinkIcon, Building2, Trash2 } from 'lucide-react';
-import { uploadSettings, uploadMenu, removeMenuFile, uploadLogo } from '../actions';
+import { updateSettings, uploadMenu, removeMenuFile, uploadLogo } from '../actions';
 
 export function SettingsForm({ initialData }: { initialData: any }) {
   const [isSaved, setIsSaved] = useState(false);
