@@ -98,8 +98,10 @@ Rules:
 Return a JSON array of objects with "type" and "text" fields. 
 Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
 
-    // Updated model list to include Gemini 2.0 (the likely target)
+    // Added any possible "Gemini 3" or future-proof names just in case
     const modelsToTry = [
+      'models/gemini-3-flash',
+      'models/gemini-3-flash-preview',
       'models/gemini-2.0-flash-exp', 
       'models/gemini-2.0-flash',
       'models/gemini-1.5-flash', 
@@ -132,12 +134,16 @@ Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
       } catch (err: any) {
         console.error(`Attempt with ${modelName} failed:`, err.message);
         lastError = err;
+        // If it's NOT a "not found" error, we might have hit a real API issue (quota, etc.)
+        if (!err.message?.includes('not found')) {
+           break;
+        }
       }
     }
 
     return NextResponse.json({ 
       error: `AI Generation Failed. Last Error: ${lastError?.message || 'Unknown'}`,
-      details: `Your key might be restricted to a specific model. I tried ${modelsToTry.join(', ')}.`
+      details: `Available models for your key: Visit starplated.com/api/ai-debug to see the list.`
     }, { status: 503 });
 
   } catch (outerError: any) {
