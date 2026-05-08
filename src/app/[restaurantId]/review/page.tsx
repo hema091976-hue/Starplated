@@ -16,7 +16,7 @@ export default async function ReviewPage({ params }: { params: { restaurantId: s
 
   const { data: restaurant, error } = await supabaseAdmin
     .from('restaurants')
-    .select('id, business_name, google_place_id, ambiance_context, menu_urls')
+    .select('id, business_name, google_place_id, ambiance_context, logo_url')
     .eq('id', restaurantId)
     .single();
 
