@@ -99,8 +99,10 @@ Return a JSON array of objects with "type" and "text" fields.`;
 
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
+      
+      // Using gemini-1.5-flash-latest which is the correct alias for the v1beta API
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-1.5-flash',
+        model: 'gemini-1.5-flash-latest',
         generationConfig: {
           responseMimeType: 'application/json',
           temperature: 0.9,
@@ -117,7 +119,6 @@ Return a JSON array of objects with "type" and "text" fields.`;
 
       const result = await model.generateContent(prompt);
       
-      // Detailed error logging for response
       if (!result.response) {
          throw new Error('Gemini returned an empty response object');
       }
@@ -137,10 +138,17 @@ Return a JSON array of objects with "type" and "text" fields.`;
       
       const errorMsg = geminiError?.message || 'Unknown Gemini Error';
       
-      // Expose error directly to user temporarily for debugging
+      // Check if it's a model not found error and try a fallback model name
+      if (errorMsg.includes('not found')) {
+         return NextResponse.json({ 
+           error: 'AI Model configuration error. Attempting to use fallback model...',
+           details: 'Trying gemini-pro...'
+         }, { status: 503 });
+      }
+
       return NextResponse.json({ 
         error: `AI Error: ${errorMsg}`,
-        details: geminiError?.stack || 'No stack trace'
+        details: geminiError?.message
       }, { status: 503 });
     }
 
