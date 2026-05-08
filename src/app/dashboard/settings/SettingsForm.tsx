@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { Upload, FileText, CheckCircle2, Link as LinkIcon, Building2, Trash2 } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, Link as LinkIcon, Building2, Trash2, Loader2 } from 'lucide-react';
 import { updateSettings, uploadMenu, removeMenuFile, uploadLogo } from '../actions';
 
 export function SettingsForm({ initialData }: { initialData: any }) {
