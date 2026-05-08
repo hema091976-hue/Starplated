@@ -82,7 +82,12 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
   const logoUrl = restaurant.logo_url || '/logo.png';
 
   const toggleTag = (tagId: string) => {
-    setSelectedTags(prev => prev.includes(tagId) ? prev.filter(t => t !== tagId) : [...prev, tagId]);
+    setSelectedTags(prev => {
+      const newTags = prev.includes(tagId) ? prev.filter(t => t !== tagId) : [...prev, tagId];
+      // Reactive regeneration: update reviews when tags change
+      setTimeout(() => generateReviews(rating, newTags), 0);
+      return newTags;
+    });
   };
 
   const handleRatingClick = (selectedRating: number) => {
@@ -91,7 +96,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
     generateReviews(selectedRating);
   };
 
-  const generateReviews = async (selectedRating: number = rating) => {
+  const generateReviews = async (selectedRating: number = rating, providedTags?: string[]) => {
     if (selectedRating < 1) return;
     
     setIsGenerating(true);
@@ -101,7 +106,7 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
 
     // Map selected tag IDs to their actual labels for the API
     const activeTagLabels = currentTags
-      .filter(t => selectedTags.includes(t.id))
+      .filter(t => (providedTags || selectedTags).includes(t.id))
       .map(t => t.label);
 
     try {
@@ -406,6 +411,18 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
                       </div>
                     );
                   })}
+                </div>
+
+                {/* Generate More Suggestions Button */}
+                <div className="flex justify-center mt-2 mb-8">
+                  <button 
+                    onClick={() => generateReviews(rating)}
+                    disabled={isGenerating}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-full text-[13px] font-bold text-[#3B82F6] hover:bg-[#EFF6FF] transition-all border border-transparent hover:border-[#DBEAFE] disabled:opacity-50"
+                  >
+                    {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                    {options.length > 0 ? 'Generate More Suggestions' : 'Generate Reviews'}
+                  </button>
                 </div>
 
                 {/* Trust Footer inside Card 2 */}
