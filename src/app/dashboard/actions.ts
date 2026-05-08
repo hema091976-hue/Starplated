@@ -121,6 +121,44 @@ export async function removeMenuFile(url: string) {
   return { success: true }
 }
 
+export async function uploadLogo(formData: FormData) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
+
+  const file = formData.get('file') as File
+  if (!file) return { error: 'No file provided' }
+
+  const fileExt = file.name.split('.').pop()
+  const fileName = `${user.id}/logo-${Date.now()}.${fileExt}`
+  
+  const { error: uploadError } = await supabase.storage
+    .from('menus') // Reusing menus bucket for simplicity
+    .upload(fileName, file, { upsert: true })
+
+  if (uploadError) {
+    console.error('Logo upload error:', uploadError)
+    return { error: uploadError.message }
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('menus')
+    .getPublicUrl(fileName)
+
+  // Update restaurant record logo_url
+  const { error: dbError } = await supabase
+    .from('restaurants')
+    .update({ logo_url: publicUrl })
+    .eq('id', user.id)
+
+  if (dbError) {
+    return { error: dbError.message }
+  }
+
+  revalidatePath('/dashboard', 'layout')
+  return { success: true, url: publicUrl }
+}
+
 export async function signOut() {
   const supabase = await createClient()
   await supabase.auth.signOut()

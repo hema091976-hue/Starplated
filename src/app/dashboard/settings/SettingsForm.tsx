@@ -2,13 +2,15 @@
 
 import { useState, useRef } from 'react';
 import { Upload, FileText, CheckCircle2, Link as LinkIcon, Building2, Trash2 } from 'lucide-react';
-import { updateSettings, uploadMenu, removeMenuFile } from '../actions';
+import { uploadSettings, uploadMenu, removeMenuFile, uploadLogo } from '../actions';
 
 export function SettingsForm({ initialData }: { initialData: any }) {
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   async function handleAction(formData: FormData) {
     setIsSaving(true);
@@ -42,6 +44,26 @@ export function SettingsForm({ initialData }: { initialData: any }) {
     
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingLogo(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const result = await uploadLogo(formData);
+    setIsUploadingLogo(false);
+    
+    if (result.error) {
+      alert(result.error);
+    }
+    
+    if (logoInputRef.current) {
+      logoInputRef.current.value = '';
     }
   }
 
@@ -84,20 +106,37 @@ export function SettingsForm({ initialData }: { initialData: any }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5" htmlFor="logo_url">Logo URL (Optional)</label>
-              <p className="text-xs text-slate-500 mb-2">Paste a link to your restaurant's logo (PNG/JPG) to display it on the review page.</p>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <LinkIcon size={16} className="text-slate-500" />
+              <label className="block text-sm font-medium text-slate-300 mb-2">Restaurant Logo</label>
+              <div className="flex items-center gap-6 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                <div className="w-20 h-20 bg-black/40 rounded-full overflow-hidden border border-white/10 flex items-center justify-center shrink-0">
+                  {initialData?.logo_url ? (
+                    <img src={initialData.logo_url} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <Building2 size={32} className="text-slate-700" />
+                  )}
                 </div>
-                <input 
-                  id="logo_url"
-                  name="logo_url"
-                  type="url" 
-                  defaultValue={initialData?.logo_url || ''}
-                  placeholder="https://example.com/logo.png"
-                  className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
-                />
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Recommended: <span className="text-white font-medium">512x512px</span> (Square PNG or JPG).<br/>
+                    This will appear at the top of your review page.
+                  </p>
+                  <input 
+                    type="file" 
+                    ref={logoInputRef}
+                    onChange={handleLogoUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={isUploadingLogo}
+                    className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-xl text-xs font-bold transition-all border border-indigo-500/20 disabled:opacity-50"
+                  >
+                    {isUploadingLogo ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                    {initialData?.logo_url ? 'Change Logo' : 'Upload Logo'}
+                  </button>
+                </div>
               </div>
             </div>
 
