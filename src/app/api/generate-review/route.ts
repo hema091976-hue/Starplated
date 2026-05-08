@@ -58,7 +58,7 @@ export async function POST(request: Request) {
         .single();
 
       if (dbError || !restaurant) {
-        return NextResponse.json({ error: `Restaurant not found in DB: ${dbError?.message || 'Unknown'}` }, { status: 404 });
+        return NextResponse.json({ error: `Restaurant not found` }, { status: 404 });
       }
 
       restaurantName = (restaurant.business_name || 'this restaurant').trim();
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
     const apiKey = process.env.GOOGLE_AI_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'GOOGLE_AI_KEY is missing from environment' }, { status: 500 });
+      return NextResponse.json({ error: 'System configuration error' }, { status: 500 });
     }
 
     const prompt = `Generate exactly 3 realistic Google reviews for "${restaurantName}".
@@ -96,10 +96,13 @@ Rules:
 Return a JSON array of objects with "type" and "text" fields. 
 Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
 
+    // Updated model list based on the user's specific account permissions
     const modelsToTry = [
+      'models/gemini-3-flash-preview',
+      'models/gemini-2.5-flash',
+      'models/gemini-2.5-pro',
+      'models/gemini-2.0-flash',
       'models/gemini-1.5-flash', 
-      'models/gemini-1.5-pro',
-      'models/gemini-2.0-flash-exp', 
       'models/gemini-pro'
     ];
     
@@ -131,18 +134,18 @@ Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
       } catch (err: any) {
         console.error(`Attempt with ${modelName} failed:`, err.message);
         lastError = err;
-        if (!err.message?.includes('not found')) break;
+        if (err.message?.includes('429')) break;
       }
     }
 
     return NextResponse.json({ 
-      error: `AI Unavailable. Last Error: ${lastError?.message || 'Unknown'}`,
+      error: 'The AI is currently unavailable. Please try again in a moment.',
       details: lastError?.message
     }, { status: 503 });
 
   } catch (outerError: any) {
     console.error('DEBUG - Outer Error:', outerError);
-    return NextResponse.json({ error: `System Error: ${outerError?.message || 'Unknown'}` }, { status: 500 });
+    return NextResponse.json({ error: 'System error' }, { status: 500 });
   }
 }
 
