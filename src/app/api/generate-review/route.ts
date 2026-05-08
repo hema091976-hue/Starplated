@@ -98,7 +98,14 @@ Rules:
 Return a JSON array of objects with "type" and "text" fields. 
 Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
 
-    const modelsToTry = ['models/gemini-1.5-flash', 'models/gemini-1.5-flash-latest', 'models/gemini-pro'];
+    // Updated model list to include Gemini 2.0 (the likely target)
+    const modelsToTry = [
+      'models/gemini-2.0-flash-exp', 
+      'models/gemini-2.0-flash',
+      'models/gemini-1.5-flash', 
+      'models/gemini-pro'
+    ];
+    
     let lastError: any = null;
 
     for (const modelName of modelsToTry) {
@@ -130,7 +137,7 @@ Return ONLY the raw JSON array. Do not include any markdown or commentary.`;
 
     return NextResponse.json({ 
       error: `AI Generation Failed. Last Error: ${lastError?.message || 'Unknown'}`,
-      details: 'Check if your Google AI Key is valid and has "Generative Language API" enabled.'
+      details: `Your key might be restricted to a specific model. I tried ${modelsToTry.join(', ')}.`
     }, { status: 503 });
 
   } catch (outerError: any) {
