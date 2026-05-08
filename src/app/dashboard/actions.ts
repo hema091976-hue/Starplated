@@ -121,45 +121,19 @@ export async function removeMenuFile(url: string) {
   return { success: true }
 }
 
-export async function uploadLogo(formData: FormData) {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: 'Not authenticated' }
+export async function updateLogoUrl(url: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Not authenticated' }
 
-    const file = formData.get('file') as File
-    if (!file) return { error: 'No file provided' }
+  const { error } = await supabase
+    .from('restaurants')
+    .update({ logo_url: url })
+    .eq('id', user.id)
 
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${user.id}/logo-${Date.now()}.${fileExt}`
-    
-    const { error: uploadError } = await supabase.storage
-      .from('menus') 
-      .upload(fileName, file, { upsert: true })
-
-    if (uploadError) {
-      return { error: `Storage Error: ${uploadError.message}` }
-    }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('menus')
-      .getPublicUrl(fileName)
-
-    // Update restaurant record logo_url
-    const { error: dbError } = await supabase
-      .from('restaurants')
-      .update({ logo_url: publicUrl })
-      .eq('id', user.id)
-
-    if (dbError) {
-      return { error: `Database Error: ${dbError.message}` }
-    }
-
-    revalidatePath('/dashboard', 'layout')
-    return { success: true, url: publicUrl }
-  } catch (err: any) {
-    return { error: err.message || 'An unexpected error occurred during upload' }
-  }
+  if (error) return { error: error.message }
+  revalidatePath('/dashboard', 'layout')
+  return { success: true }
 }
 
 export async function signOut() {

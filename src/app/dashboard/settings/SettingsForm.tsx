@@ -2,7 +2,8 @@
 
 import { useState, useRef } from 'react';
 import { Upload, FileText, CheckCircle2, Link as LinkIcon, Building2, Trash2, Loader2 } from 'lucide-react';
-import { updateSettings, uploadMenu, removeMenuFile, uploadLogo } from '../actions';
+import { updateSettings, uploadMenu, removeMenuFile, updateLogoUrl } from '../actions';
+import { createClient } from '@/utils/supabase/client';
 
 export function SettingsForm({ initialData }: { initialData: any }) {
   const [isSaved, setIsSaved] = useState(false);
@@ -52,18 +53,37 @@ export function SettingsForm({ initialData }: { initialData: any }) {
     if (!file) return;
 
     setIsUploadingLogo(true);
-    const formData = new FormData();
-    formData.append('file', file);
     
-    const result = await uploadLogo(formData);
-    setIsUploadingLogo(false);
-    
-    if (result.error) {
-      alert(result.error);
-    }
-    
-    if (logoInputRef.current) {
-      logoInputRef.current.value = '';
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/logo-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('menus')
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('menus')
+        .getPublicUrl(fileName);
+      
+      const result = await updateLogoUrl(publicUrl);
+      
+      if (result.error) {
+        alert(result.error);
+      }
+    } catch (err: any) {
+      alert(err.message || 'An error occurred during upload');
+    } finally {
+      setIsUploadingLogo(false);
+      if (logoInputRef.current) {
+        logoInputRef.current.value = '';
+      }
     }
   }
 
