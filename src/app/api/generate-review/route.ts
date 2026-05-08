@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
 // Extend Vercel serverless function timeout to 30s
 export const maxDuration = 30;
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
     const apiKey = process.env.GOOGLE_AI_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'AI key not configured' }, { status: 500 });
+      return NextResponse.json({ error: 'AI key not configured in environment' }, { status: 500 });
     }
 
     const restaurantName = (restaurant.business_name || 'this restaurant').trim();
@@ -100,13 +100,19 @@ Return a JSON array of objects with "type" and "text" fields.`;
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ 
-        model: 'gemini-flash-latest',
+        model: 'gemini-1.5-flash',
         generationConfig: {
           responseMimeType: 'application/json',
           temperature: 0.9,
           topP: 0.95,
           maxOutputTokens: 1000,
-        }
+        },
+        safetySettings: [
+          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        ]
       });
 
       const result = await model.generateContent(prompt);
@@ -118,10 +124,20 @@ Return a JSON array of objects with "type" and "text" fields.`;
         return NextResponse.json({ options: parsed });
       }
 
-      throw new Error('AI failed to produce a valid review list');
+      throw new Error('AI failed to produce a valid review list format');
 
     } catch (geminiError: any) {
       console.error('Gemini error:', geminiError?.message ?? geminiError);
+      
+      // Check if it's a quota error
+      const errorMsg = geminiError?.message || '';
+      if (errorMsg.includes('429') || errorMsg.includes('quota')) {
+        return NextResponse.json({ 
+          error: 'The AI is currently busy. Please try again in 60 seconds.',
+          details: 'QUOTA_EXCEEDED'
+        }, { status: 429 });
+      }
+
       return NextResponse.json({ 
         error: 'The AI is currently resting. Please try again in a moment.',
         details: geminiError?.message 
