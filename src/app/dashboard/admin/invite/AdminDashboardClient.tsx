@@ -18,19 +18,6 @@ type Restaurant = {
   email: string;
 };
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className={`w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 ${pending ? 'opacity-60 cursor-not-allowed' : ''}`}
-    >
-      {pending ? <><Loader2 className="animate-spin" size={18} /> Provisioning...</> : <><Sparkles size={18} /> Generate Invite & QR Code</>}
-    </button>
-  );
-}
-
 function QRModal({ restaurant, baseUrl, onClose }: { restaurant: Restaurant; baseUrl: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
   const reviewUrl = `${baseUrl}/${restaurant.id}/review`;  // ← Direct customer review URL
