@@ -1,16 +1,24 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
+import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { Building2, Mail, Link as LinkIcon, Edit, Upload, CheckCircle2 } from 'lucide-react';
+import { Building2, Mail, Link as LinkIcon, Edit, Upload, CheckCircle2, Utensils } from 'lucide-react';
 import { headers } from 'next/headers';
+import { QRCodeDisplay } from '../../qr/QRCodeDisplay';
 
-export default async function AdminInvitePage({ searchParams }: { searchParams: { success?: string, slug?: string, error?: string } }) {
-  // We should ideally protect this with an admin check, but for this exercise we assume it's secure or accessed by admin.
+export default async function AdminInvitePage({ searchParams }: { searchParams: { success?: string, slug?: string, error?: string, businessName?: string } }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Protect route strictly for the founder
+  if (!user || (user.email !== 'admmin@starplated.com' && user.email !== 'admin@starplated.com')) {
+    redirect('/dashboard');
+  }
 
   async function createMailedRestaurant(formData: FormData) {
     'use server';
     
-    const supabaseAdmin = createClient(
+    const supabaseAdmin = createSupabaseAdmin(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
@@ -19,6 +27,7 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
     const tempEmail = formData.get('temp_email') as string;
     const googlePlaceId = formData.get('google_place_id') as string;
     const description = formData.get('description') as string;
+    const menuContext = formData.get('menu_context') as string;
     const slug = businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 
     // 1. Create User
@@ -41,6 +50,7 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
       business_name: businessName,
       google_place_id: googlePlaceId,
       ambiance_context: description,
+      menu_context: menuContext,
       subscription_status: 'trialing' // Pre-activated trial
     });
 
@@ -51,7 +61,7 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
     }
 
     // Redirect to success state
-    redirect(`/dashboard/admin/invite?success=true&slug=${slug}`);
+    redirect(`/dashboard/admin/invite?success=true&slug=${slug}&businessName=${encodeURIComponent(businessName)}`);
   }
 
   return (
@@ -73,13 +83,13 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
             <CheckCircle2 size={32} className="text-emerald-400" />
           </div>
           <h2 className="text-xl font-bold text-white mb-2">Restaurant Provisioned!</h2>
-          <p className="text-slate-400 mb-6">The account is ready. They can activate it using the custom link below.</p>
+          <p className="text-slate-400 mb-6">The account is ready. Print the table tents with this QR Code.</p>
           
-          <div className="p-4 bg-black/40 rounded-xl border border-white/5 inline-block mb-6">
-            <p className="text-xs text-slate-500 uppercase tracking-wider font-bold mb-1">Activation Link</p>
-            <p className="text-indigo-400 font-mono text-lg select-all">
-              starplated.com/welcome/{searchParams.slug}
-            </p>
+          <div className="max-w-xs mx-auto mb-8">
+            <QRCodeDisplay 
+              reviewUrl={`https://starplated.com/welcome/${searchParams.slug}`} 
+              businessName={searchParams.businessName || 'Activation QR'} 
+            />
           </div>
           
           <div>
@@ -140,15 +150,29 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Initial Setup / Context</label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Ambiance & General Setup</label>
               <div className="relative group">
                 <div className="absolute top-3 left-4 pointer-events-none text-slate-500">
                   <Edit size={18} />
                 </div>
                 <textarea 
                   name="description"
+                  className="w-full h-24 bg-[#020617]/80 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
+                  placeholder="e.g. cozy, family-friendly, premium..."
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Menu Context (Dishes/Drinks)</label>
+              <div className="relative group">
+                <div className="absolute top-3 left-4 pointer-events-none text-slate-500">
+                  <Utensils size={18} />
+                </div>
+                <textarea 
+                  name="menu_context"
                   className="w-full h-32 bg-[#020617]/80 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none"
-                  placeholder="Pre-populate menu items, ambiance, to make it feel personalized..."
+                  placeholder="e.g. Moussaka, Souvlaki, Tzatziki, Baklava..."
                 />
               </div>
             </div>
