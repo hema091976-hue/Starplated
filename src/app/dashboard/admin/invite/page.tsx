@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { Building2, Mail, Link as LinkIcon, Edit, Upload, CheckCircle2, Utensils, Download } from 'lucide-react';
 import { headers } from 'next/headers';
 import { QRCodeDisplay } from '../../qr/QRCodeDisplay';
+import { AdminSubmitButton } from './AdminSubmitButton';
 
 export default async function AdminInvitePage({ searchParams }: { searchParams: { success?: string, slug?: string, error?: string, businessName?: string } }) {
   const supabase = await createClient();
@@ -44,10 +45,14 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
   async function createMailedRestaurant(formData: FormData) {
     'use server';
     
-    const supabaseAdmin = createSupabaseAdmin(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+    if (!serviceKey || !supabaseUrl) {
+      redirect(`/dashboard/admin/invite?error=${encodeURIComponent('Configuration Error: SUPABASE_SERVICE_ROLE_KEY is missing in Vercel settings.')}`);
+    }
+    
+    const supabaseAdmin = createSupabaseAdmin(supabaseUrl, serviceKey);
 
     const businessName = formData.get('business_name') as string;
     const tempEmail = formData.get('temp_email') as string;
@@ -203,12 +208,7 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
               </div>
             </div>
 
-            <button 
-              type="submit"
-              className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
-            >
-              Generate Invite & Magic Link
-            </button>
+            <AdminSubmitButton />
           </div>
         </form>
       )}
