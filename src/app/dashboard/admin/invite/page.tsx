@@ -15,6 +15,11 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
     redirect('/dashboard');
   }
 
+  const headerList = await headers();
+  const host = headerList.get('host') || 'starplated.com';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  const baseUrl = `${protocol}://${host}`;
+
   const supabaseAdmin = createSupabaseAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -108,7 +113,7 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
           
           <div className="max-w-xs mx-auto mb-8">
             <QRCodeDisplay 
-              reviewUrl={`https://starplated.com/welcome/${searchParams.slug}`} 
+              reviewUrl={`${baseUrl}/welcome/${searchParams.slug}`} 
               businessName={searchParams.businessName || 'Activation QR'} 
             />
           </div>
@@ -219,7 +224,7 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
               <div key={rest.id} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-bold text-white">{rest.business_name}</h3>
-                  <p className="text-xs text-slate-500 font-mono mt-1">starplated.com/welcome/{rest.slug}</p>
+                  <p className="text-xs text-slate-500 font-mono mt-1">{host}/welcome/{rest.slug}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <a 
