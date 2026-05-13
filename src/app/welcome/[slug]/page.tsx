@@ -35,20 +35,17 @@ async function activateInvite(formData: FormData) {
   }
 
   // 3. Redirect to action_link which will authenticate and send to site URL
-  // We want to redirect them to /dashboard after login, but action_link usually respects SITE_URL.
-  // We can append &redirect_to=/dashboard to the action link if it doesn't have it.
   let actionLink = linkData.properties.action_link;
   const urlObj = new URL(actionLink);
   
   // Get protocol and host dynamically for local/prod support
   const headersList = await headers();
-  const host = headersList.get('host');
-  const protocol = host?.includes('localhost') ? 'http' : 'https';
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL && !process.env.NEXT_PUBLIC_APP_URL.includes('localhost')
-    ? process.env.NEXT_PUBLIC_APP_URL 
-    : `${protocol}://${host}`;
-
-  urlObj.searchParams.set('redirect_to', `${baseUrl}/dashboard`);
+  const host = headersList.get('host') || 'starplated.com';
+  const protocol = host.includes('localhost') ? 'http' : 'https';
+  
+  // Use a clean redirect_to parameter to force dashboard entry
+  const dashboardUrl = `${protocol}://${host}/dashboard`;
+  urlObj.searchParams.set('redirect_to', dashboardUrl);
 
   redirect(urlObj.toString());
 }
