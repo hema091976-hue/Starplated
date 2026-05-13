@@ -203,20 +203,23 @@ export function ReviewUI({ restaurant, sessionId }: { restaurant: any, sessionId
         </div>
 
         {/* Step Indicator */}
-        <div className="flex items-center justify-center gap-2 md:gap-4 text-xs md:text-sm font-medium mb-10 overflow-x-auto whitespace-nowrap px-4 hide-scrollbar">
-          <div className={`flex items-center gap-2 ${step >= 1 ? 'text-[#3B82F6]' : 'text-[#9CA3AF]'}`}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 1 ? 'bg-[#3B82F6] text-white' : 'bg-[#E5E7EB] text-[#6B7280]'}`}>1</div>
-            Rate your visit
+        <div className="flex items-center justify-between sm:justify-center w-full gap-2 sm:gap-4 text-[11px] sm:text-xs md:text-sm font-medium mb-10 px-1 sm:px-4">
+          <div className={`flex items-center gap-1.5 sm:gap-2 shrink-0 ${step >= 1 ? 'text-[#3B82F6]' : 'text-[#9CA3AF]'}`}>
+            <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold ${step >= 1 ? 'bg-[#3B82F6] text-white' : 'bg-[#E5E7EB] text-[#6B7280]'}`}>1</div>
+            <span className="hidden sm:inline">Rate your visit</span>
+            <span className="sm:hidden">Rate</span>
           </div>
-          <div className="w-4 md:w-8 h-px bg-[#E5E7EB]"></div>
-          <div className={`flex items-center gap-2 ${step >= 2 ? 'text-[#3B82F6]' : 'text-[#9CA3AF]'}`}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 2 ? 'bg-[#3B82F6] text-white' : 'bg-[#E5E7EB] text-[#6B7280]'}`}>2</div>
-            Choose review style
+          <div className="flex-1 sm:flex-none sm:w-4 md:w-8 h-px bg-[#E5E7EB]"></div>
+          <div className={`flex items-center gap-1.5 sm:gap-2 shrink-0 ${step >= 2 ? 'text-[#3B82F6]' : 'text-[#9CA3AF]'}`}>
+            <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold ${step >= 2 ? 'bg-[#3B82F6] text-white' : 'bg-[#E5E7EB] text-[#6B7280]'}`}>2</div>
+            <span className="hidden sm:inline">Choose review style</span>
+            <span className="sm:hidden">Review</span>
           </div>
-          <div className="w-4 md:w-8 h-px bg-[#E5E7EB]"></div>
-          <div className={`flex items-center gap-2 ${step >= 3 ? 'text-[#3B82F6]' : 'text-[#9CA3AF]'}`}>
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${step >= 3 ? 'bg-[#3B82F6] text-white' : 'bg-[#E5E7EB] text-[#6B7280]'}`}>3</div>
-            Post to Google
+          <div className="flex-1 sm:flex-none sm:w-4 md:w-8 h-px bg-[#E5E7EB]"></div>
+          <div className={`flex items-center gap-1.5 sm:gap-2 shrink-0 ${step >= 3 ? 'text-[#3B82F6]' : 'text-[#9CA3AF]'}`}>
+            <div className={`w-5 h-5 md:w-6 md:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold ${step >= 3 ? 'bg-[#3B82F6] text-white' : 'bg-[#E5E7EB] text-[#6B7280]'}`}>3</div>
+            <span className="hidden sm:inline">Post to Google</span>
+            <span className="sm:hidden">Post</span>
           </div>
         </div>
 
