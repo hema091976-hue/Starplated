@@ -1,5 +1,6 @@
 import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { createClient } from '@/utils/supabase/server';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { Building2, Mail, Link as LinkIcon, Edit, Upload, CheckCircle2, Utensils, Download } from 'lucide-react';
@@ -236,23 +237,23 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
               <div key={rest.id} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-bold text-white">{rest.business_name}</h3>
-                  <p className="text-xs text-slate-500 font-mono mt-1">{host}/welcome/{rest.id}</p>
+                  <p className="text-xs text-slate-500 font-mono mt-1">/welcome/{rest.id}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <a 
+                  <Link 
                     href={`/welcome/${rest.id}`} 
                     target="_blank"
                     className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium text-white transition-colors"
                   >
                     Test Flow
-                  </a>
-                  <a 
+                  </Link>
+                  <Link 
                     href={`/dashboard/admin/invite?success=true&slug=${rest.id}&businessName=${encodeURIComponent(rest.business_name)}`}
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium text-white transition-colors flex items-center gap-2"
                   >
                     <Download size={14} />
                     QR Code
-                  </a>
+                  </Link>
                 </div>
               </div>
             ))
