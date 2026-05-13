@@ -2,7 +2,7 @@ import { createClient as createSupabaseAdmin } from '@supabase/supabase-js';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
-import { Building2, Mail, Link as LinkIcon, Edit, Upload, CheckCircle2, Utensils } from 'lucide-react';
+import { Building2, Mail, Link as LinkIcon, Edit, Upload, CheckCircle2, Utensils, Download } from 'lucide-react';
 import { headers } from 'next/headers';
 import { QRCodeDisplay } from '../../qr/QRCodeDisplay';
 
