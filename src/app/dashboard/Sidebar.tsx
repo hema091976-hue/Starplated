@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Settings, QrCode, LogOut, Store, CreditCard, Lock, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Settings, QrCode, LogOut, Store, CreditCard, Lock, Menu, X, Users } from 'lucide-react';
 import { signOut } from './actions';
 
-export function Sidebar({ businessName, isSubscribed }: { businessName: string, isSubscribed: boolean }) {
+export function Sidebar({ businessName, isSubscribed, isAdmin }: { businessName: string, isSubscribed: boolean, isAdmin?: boolean }) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
@@ -16,6 +16,10 @@ export function Sidebar({ businessName, isSubscribed }: { businessName: string, 
     { name: 'QR Codes', href: '/dashboard/qr', icon: QrCode, protected: true },
     { name: 'Billing & Plan', href: '/dashboard/billing', icon: CreditCard, protected: false },
   ];
+
+  if (isAdmin) {
+    navItems.unshift({ name: 'Admin Portal', href: '/dashboard/admin/invite', icon: Users, protected: false });
+  }
 
   return (
     <>
