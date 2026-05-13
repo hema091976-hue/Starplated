@@ -2,6 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import { Sidebar } from './Sidebar';
 import { redirect } from 'next/navigation';
 import { TrialGate } from './TrialGate';
+import { headers } from 'next/headers';
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -33,9 +34,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
       restaurant = newRestaurant;
     }
   }
-
-  const headerList = await headers();
-  const pathname = headerList.get('x-pathname') || '';
 
   const businessName = restaurant?.business_name || 'My Restaurant';
   const isAdmin = user.email === 'admmin@starplated.com' || user.email === 'admin@starplated.com';
