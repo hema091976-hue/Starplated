@@ -7,9 +7,10 @@ import Link from 'next/link';
 export function TrialGate({ isSubscribed, children }: { isSubscribed: boolean, children: React.ReactNode }) {
   const pathname = usePathname();
   
-  // Whitelist the billing page
+  // Whitelist the billing page and admin pages
   const isBillingPage = pathname.includes('/dashboard/billing');
-  const showBlurGate = !isSubscribed && !isBillingPage;
+  const isAdminPage = pathname.includes('/dashboard/admin');
+  const showBlurGate = !isSubscribed && !isBillingPage && !isAdminPage;
 
   return (
     <div className="relative h-full w-full">
