@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
-  Building2, Mail, Link as LinkIcon, Edit, Utensils,
+  Building2, Mail, Link as LinkIcon, Edit, Utensils, Upload,
   Download, ExternalLink, Plus, X, CheckCircle2,
   Sparkles, Users, AlertCircle, Loader2, QrCode, Copy, Check, ChevronDown
 } from 'lucide-react';
@@ -135,6 +135,31 @@ function QRModal({ restaurant, baseUrl, onClose }: { restaurant: Restaurant; bas
 function AddRestaurantModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (id: string, name: string) => void }) {
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState('');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoPreview, setLogoPreview] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoRef = useRef<HTMLInputElement>(null);
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const { createClient } = await import('@/utils/supabase/client');
+      const supabase = createClient();
+      const ext = file.name.split('.').pop();
+      const fileName = `admin-provisioned/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from('menus').upload(fileName, file, { upsert: true });
+      if (upErr) throw upErr;
+      const { data: { publicUrl } } = supabase.storage.from('menus').getPublicUrl(fileName);
+      setLogoUrl(publicUrl);
+      setLogoPreview(publicUrl);
+    } catch (err: any) {
+      setFormError('Logo upload failed: ' + err.message);
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -147,6 +172,7 @@ function AddRestaurantModal({ onClose, onSuccess }: { onClose: () => void; onSuc
       googlePlaceId: fd.get('google_place_id'),
       description: fd.get('description'),
       menuContext: fd.get('menu_context'),
+      logoUrl: logoUrl || null,
     };
     try {
       const res = await fetch('/api/admin/create-restaurant', {
@@ -166,23 +192,47 @@ function AddRestaurantModal({ onClose, onSuccess }: { onClose: () => void; onSuc
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#0f1a2e] border border-white/10 rounded-3xl p-8 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-[#0a1628] border border-white/10 rounded-3xl max-w-xl w-full shadow-2xl max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="sticky top-0 bg-[#0a1628]/95 backdrop-blur-sm border-b border-white/5 px-8 py-5 flex items-center justify-between rounded-t-3xl z-10">
           <div>
             <h3 className="text-xl font-bold text-white">Add New Restaurant</h3>
             <p className="text-sm text-slate-400 mt-0.5">Pre-provision an account for physical outreach</p>
           </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors p-1"><X size={20} /></button>
+          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors p-1.5 hover:bg-white/5 rounded-xl"><X size={20} /></button>
         </div>
 
         {formError && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2">
+          <div className="mx-8 mt-5 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2">
             <AlertCircle size={16} className="text-red-400 mt-0.5 shrink-0" />
             <p className="text-red-400 text-sm">{formError}</p>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="p-8 space-y-7">
+
+          {/* Logo Upload */}
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-3">Restaurant Logo</label>
+            <div className="flex items-center gap-5 p-5 bg-white/[0.02] border border-white/5 rounded-2xl">
+              <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+                {logoPreview
+                  ? <img src={logoPreview} alt="Logo preview" className="w-full h-full object-cover" />
+                  : <Building2 size={24} className="text-slate-600" />
+                }
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-slate-400 mb-2">512×512px recommended. PNG or JPG.</p>
+                <input type="file" ref={logoRef} accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                <button type="button" onClick={() => logoRef.current?.click()} disabled={uploadingLogo}
+                  className="flex items-center gap-2 px-4 py-2 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-xl text-sm font-bold border border-indigo-500/20 transition-all disabled:opacity-50">
+                  {uploadingLogo ? <><Loader2 size={14} className="animate-spin" /> Uploading...</> : <><Upload size={14} /> {logoPreview ? 'Change Logo' : 'Upload Logo'}</>}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Business Name */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Business Name *</label>
             <div className="relative">
@@ -192,6 +242,7 @@ function AddRestaurantModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             </div>
           </div>
 
+          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Restaurant Email *</label>
             <div className="relative">
@@ -201,26 +252,50 @@ function AddRestaurantModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             </div>
           </div>
 
+          {/* Google Place ID */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Google Place ID</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-sm font-medium text-slate-300">Google Place ID</label>
+              <a href="https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder"
+                target="_blank" rel="noreferrer"
+                className="text-[11px] text-indigo-400 hover:text-indigo-300 underline font-bold uppercase tracking-tight">
+                How do I find this? ↗
+              </a>
+            </div>
+            <p className="text-xs text-slate-500 mb-2">Ensures AI reviews link directly to this restaurant's Google Maps listing.</p>
             <div className="relative">
               <LinkIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
               <input name="google_place_id" type="text" placeholder="ChIJN1t_tDeuEmsRUsoyG83frY4"
-                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white text-sm font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+            </div>
+            <div className="mt-2 p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                <span className="text-indigo-400 font-black uppercase tracking-wider text-[10px] mr-1">Pro Tip:</span>
+                Search your restaurant in the finder above. Copy the string shown after "Place ID:" and paste it here.
+              </p>
             </div>
           </div>
 
+          {/* Ambiance */}
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Ambiance & Vibe</label>
+            <p className="text-xs text-slate-500 mb-2">Describe the atmosphere. The AI uses this to write authentic reviews.</p>
             <div className="relative">
               <Edit size={16} className="absolute left-3.5 top-3 text-slate-500" />
-              <textarea name="description" rows={2} placeholder="e.g. cozy, family-friendly, premium Mediterranean..."
+              <textarea name="description" rows={2} placeholder="e.g. Upscale Italian bistro with romantic candlelit tables, exposed brick walls, and soft jazz..."
                 className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-white text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none" />
             </div>
           </div>
 
+          {/* Menu Context */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1.5">Menu Context (Dishes & Drinks)</label>
+            <label className="block text-sm font-medium text-slate-300 mb-1.5">Menu Items & Signature Dishes</label>
+            <div className="mb-2 p-3 bg-indigo-500/5 border border-indigo-500/10 rounded-xl">
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                <span className="text-indigo-400 font-black uppercase tracking-wider text-[10px] mr-1">✦ Pro Tip:</span>
+                Just paste a few dish names. E.g. "Truffle pasta, wagyu burger, tiramisu, espresso martini"
+              </p>
+            </div>
             <div className="relative">
               <Utensils size={16} className="absolute left-3.5 top-3 text-slate-500" />
               <textarea name="menu_context" rows={3} placeholder="e.g. Moussaka, Souvlaki, Tzatziki, House Red Wine, Baklava..."
@@ -228,17 +303,17 @@ function AddRestaurantModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
-          >
+          {/* Submit */}
+          <button type="submit" disabled={loading}
+            className={`w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}>
             {loading ? <><Loader2 className="animate-spin" size={18} /> Provisioning...</> : <><Sparkles size={18} /> Generate Invite & QR Code</>}
           </button>
         </form>
       </div>
     </div>
   );
+}
+
 }
 
 export function AdminDashboardClient({

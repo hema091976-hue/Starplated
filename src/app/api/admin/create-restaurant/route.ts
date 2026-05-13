@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { businessName, tempEmail, googlePlaceId, description, menuContext } = body;
+    const { businessName, tempEmail, googlePlaceId, description, menuContext, logoUrl } = body;
 
     if (!businessName || !tempEmail) {
       return NextResponse.json({ error: 'Business Name and Email are required.' }, { status: 400 });
@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
       google_place_id: googlePlaceId || null,
       ambiance_context: description || null,
       menu_context: menuContext || null,
+      logo_url: logoUrl || null,
       subscription_status: 'trialing',
     });
 
