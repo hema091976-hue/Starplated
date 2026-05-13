@@ -86,8 +86,8 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
       redirect(`/dashboard/admin/invite?error=${encodeURIComponent('Database Error: ' + restError.message)}`);
     }
 
-    // Redirect to success state
-    redirect(`/dashboard/admin/invite?success=true&slug=${slug}&businessName=${encodeURIComponent(businessName)}`);
+    // Redirect to success state - USE USER ID AS SLUG FOR 100% RELIABILITY
+    redirect(`/dashboard/admin/invite?success=true&slug=${userId}&businessName=${encodeURIComponent(businessName)}`);
   }
 
   return (
@@ -224,18 +224,18 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
               <div key={rest.id} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-bold text-white">{rest.business_name}</h3>
-                  <p className="text-xs text-slate-500 font-mono mt-1">{host}/welcome/{rest.slug}</p>
+                  <p className="text-xs text-slate-500 font-mono mt-1">{host}/welcome/{rest.id}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <a 
-                    href={`/welcome/${rest.slug}`} 
+                    href={`/welcome/${rest.id}`} 
                     target="_blank"
                     className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium text-white transition-colors"
                   >
                     Test Flow
                   </a>
                   <a 
-                    href={`/dashboard/admin/invite?success=true&slug=${rest.slug}&businessName=${encodeURIComponent(rest.business_name)}`}
+                    href={`/dashboard/admin/invite?success=true&slug=${rest.id}&businessName=${encodeURIComponent(rest.business_name)}`}
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium text-white transition-colors flex items-center gap-2"
                   >
                     <Download size={14} />

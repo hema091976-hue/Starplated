@@ -81,7 +81,8 @@ export default async function WelcomePage({ params }: { params: { slug: string }
   
   const matchedRestaurant = restaurants?.find(r => {
     const rSlug = slugify(r.business_name);
-    return rSlug === activeSlug;
+    // Support BOTH slug matching and direct UUID matching
+    return rSlug === activeSlug || r.id === activeSlug;
   });
   
   if (!matchedRestaurant) {
@@ -89,7 +90,7 @@ export default async function WelcomePage({ params }: { params: { slug: string }
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Restaurant Not Found</h1>
-          <p className="text-slate-400 mb-8">We couldn't find a review page for "{activeSlug || params.slug}".</p>
+          <p className="text-slate-400 mb-8">We couldn't find a review page for "{activeSlug || 'this restaurant'}".</p>
           <a href="/" className="text-indigo-400 underline">Return to Home</a>
         </div>
       </div>
