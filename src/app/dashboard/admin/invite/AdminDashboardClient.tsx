@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useFormStatus } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   Building2, Mail, Link as LinkIcon, Edit, Utensils,
@@ -108,7 +107,14 @@ function AddRestaurantModal({ createAction, onClose }: { createAction: (f: FormD
           <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors p-1"><X size={20} /></button>
         </div>
 
-        <form action={createAction} className="space-y-4">
+        {error && (
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2">
+            <AlertCircle size={16} className="text-red-400 mt-0.5 shrink-0" />
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1.5">Business Name *</label>
             <div className="relative">
@@ -154,7 +160,13 @@ function AddRestaurantModal({ createAction, onClose }: { createAction: (f: FormD
             </div>
           </div>
 
-          <SubmitButton />
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 ${loading ? 'opacity-60 cursor-not-allowed' : ''}`}
+          >
+            {loading ? <><Loader2 className="animate-spin" size={18} /> Provisioning...</> : <><Sparkles size={18} /> Generate Invite & QR Code</>}
+          </button>
         </form>
       </div>
     </div>
@@ -162,27 +174,42 @@ function AddRestaurantModal({ createAction, onClose }: { createAction: (f: FormD
 }
 
 export function AdminDashboardClient({
-  restaurants,
+  restaurants: initialRestaurants,
   baseUrl,
-  createAction,
   error,
   successSlug,
   successName,
 }: {
   restaurants: Restaurant[];
   baseUrl: string;
-  createAction: (f: FormData) => Promise<void>;
   error?: string;
   successSlug?: string;
   successName?: string;
 }) {
+  const [restaurants, setRestaurants] = useState(initialRestaurants);
   const [showAddModal, setShowAddModal] = useState(false);
   const [qrRestaurant, setQrRestaurant] = useState<Restaurant | null>(null);
+  const [newSuccess, setNewSuccess] = useState<{ id: string; name: string } | null>(null);
+
+  function handleSuccess(id: string, name: string) {
+    setShowAddModal(false);
+    setNewSuccess({ id, name });
+    // Add to local list immediately without full page reload
+    const newRest: Restaurant = {
+      id, business_name: name,
+      created_at: new Date().toISOString(),
+      google_place_id: null,
+      subscription_status: 'trialing',
+      isMailed: true,
+      email: '',
+    };
+    setRestaurants(prev => [newRest, ...prev]);
+    // Auto-show QR
+    setQrRestaurant(newRest);
+  }
 
   const mailedCount = restaurants.filter(r => r.isMailed).length;
-  const activeCount = restaurants.filter(r => r.subscription_status === 'active').length;
-
-  return (
+  const activeCount = restaurants.filter(r => r.subscription_status === 'active').length;  return (
     <div className="p-4 md:p-8 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -217,20 +244,23 @@ export function AdminDashboardClient({
         </div>
       </div>
 
-      {/* Error / Success banners */}
-      {error && (
-        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3">
-          <AlertCircle size={18} className="text-red-400 shrink-0 mt-0.5" />
-          <p className="text-red-400 text-sm">{error}</p>
-        </div>
-      )}
-      {successSlug && (
-        <div className="mb-6 p-5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-4">
-          <CheckCircle2 size={24} className="text-emerald-400 shrink-0" />
-          <div className="flex-1">
-            <p className="text-white font-semibold">✅ {successName || 'Restaurant'} provisioned!</p>
-            <p className="text-slate-400 text-sm mt-0.5">Find it in the list below to download the QR code.</p>
-          </div>
+      {(error || newSuccess) && (
+        <div className="mb-6">
+          {error && (
+            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-3">
+              <AlertCircle size={18} className="text-red-400 shrink-0 mt-0.5" />
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          )}
+          {newSuccess && (
+            <div className="p-5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-4">
+              <CheckCircle2 size={24} className="text-emerald-400 shrink-0" />
+              <div>
+                <p className="text-white font-semibold">✅ {newSuccess.name} provisioned!</p>
+                <p className="text-slate-400 text-sm mt-0.5">QR code is ready — the popup is shown automatically.</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -292,7 +322,7 @@ export function AdminDashboardClient({
 
       {/* Modals */}
       {showAddModal && (
-        <AddRestaurantModal createAction={createAction} onClose={() => setShowAddModal(false)} />
+        <AddRestaurantModal onClose={() => setShowAddModal(false)} onSuccess={handleSuccess} />
       )}
       {qrRestaurant && (
         <QRModal restaurant={qrRestaurant} baseUrl={baseUrl} onClose={() => setQrRestaurant(null)} />

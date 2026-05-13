@@ -101,7 +101,6 @@ export default async function AdminInvitePage(props: {
     <AdminDashboardClient
       restaurants={restaurants}
       baseUrl={baseUrl}
-      createAction={createMailedRestaurant}
       error={searchParams.error}
       successSlug={searchParams.success ? searchParams.slug : undefined}
       successName={searchParams.businessName}
