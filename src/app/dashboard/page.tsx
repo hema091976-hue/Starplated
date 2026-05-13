@@ -13,7 +13,7 @@ export default async function DashboardAnalytics() {
 
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select('business_name, subscription_status')
+    .select('business_name, subscription_status, ambiance_context, google_place_id')
     .eq('id', user.id)
     .single();
 
