@@ -50,10 +50,14 @@ async function activateInvite(formData: FormData) {
 
   const urlObj = new URL(actionLink);
   
-  // Use a clean redirect_to parameter to force dashboard entry and clear old sessions
-  urlObj.searchParams.set('redirect_to', `${baseUrl}/dashboard?refresh=true`);
+  // Use a clean redirect_to that forces the dashboard after auth
+  urlObj.searchParams.set('redirect_to', `${baseUrl}/dashboard`);
+  
+  // Route through /api/activate to sign out any existing session first.
+  // This prevents session bleeding (e.g., admin account showing instead of the new restaurant).
+  const activateUrl = `${baseUrl}/api/activate?link=${encodeURIComponent(urlObj.toString())}`;
 
-  redirect(urlObj.toString());
+  redirect(activateUrl);
 }
 
 export default async function WelcomePage(props: { params: Promise<{ slug: string }> }) {
