@@ -45,54 +45,66 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
   async function createMailedRestaurant(formData: FormData) {
     'use server';
     
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    try {
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-    if (!serviceKey || !supabaseUrl) {
-      redirect(`/dashboard/admin/invite?error=${encodeURIComponent('Configuration Error: SUPABASE_SERVICE_ROLE_KEY is missing in Vercel settings.')}`);
+      if (!serviceKey || !supabaseUrl) {
+        return redirect(`/dashboard/admin/invite?error=${encodeURIComponent('Config Error: SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL is missing in Vercel settings.')}`);
+      }
+      
+      const supabaseAdmin = createSupabaseAdmin(supabaseUrl, serviceKey);
+
+      const businessName = (formData.get('business_name') as string)?.trim();
+      const tempEmail = (formData.get('temp_email') as string)?.trim();
+      const googlePlaceId = (formData.get('google_place_id') as string)?.trim();
+      const description = formData.get('description') as string;
+      const menuContext = formData.get('menu_context') as string;
+      const slug = businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+
+      if (!businessName || !tempEmail) {
+        return redirect(`/dashboard/admin/invite?error=${encodeURIComponent('Validation Error: Business Name and Email are required.')}`);
+      }
+
+      // 1. Create User via Admin Auth
+      const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
+        email: tempEmail,
+        email_confirm: true,
+        password: Math.random().toString(36).slice(-10) + 'A1!',
+        app_metadata: { is_mailed: true, invite_slug: slug },
+        user_metadata: { business_name: businessName }
+      });
+
+      if (userError) {
+        return redirect(`/dashboard/admin/invite?error=${encodeURIComponent('Auth Step Failed: ' + userError.message)}`);
+      }
+
+      const userId = userData.user.id;
+
+      // 2. Create Restaurant Record
+      const { error: restError } = await supabaseAdmin.from('restaurants').upsert({
+        id: userId,
+        business_name: businessName,
+        google_place_id: googlePlaceId,
+        ambiance_context: description,
+        menu_context: menuContext,
+        subscription_status: 'trialing' // Pre-activated trial
+      });
+
+      if (restError) {
+        // Rollback user creation if DB fails
+        await supabaseAdmin.auth.admin.deleteUser(userId);
+        return redirect(`/dashboard/admin/invite?error=${encodeURIComponent('Database Step Failed: ' + restError.message)}`);
+      }
+
+      // 3. Clear Cache and Redirect
+      revalidatePath('/dashboard/admin/invite');
+      redirect(`/dashboard/admin/invite?success=true&slug=${userId}&businessName=${encodeURIComponent(businessName)}`);
+
+    } catch (e: any) {
+      if (e.message?.includes('NEXT_REDIRECT')) throw e; // Let Next.js redirects work
+      return redirect(`/dashboard/admin/invite?error=${encodeURIComponent('System Crash: ' + e.message)}`);
     }
-    
-    const supabaseAdmin = createSupabaseAdmin(supabaseUrl, serviceKey);
-
-    const businessName = formData.get('business_name') as string;
-    const tempEmail = formData.get('temp_email') as string;
-    const googlePlaceId = formData.get('google_place_id') as string;
-    const description = formData.get('description') as string;
-    const menuContext = formData.get('menu_context') as string;
-    const slug = businessName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-
-    // 1. Create User
-    const { data: userData, error: userError } = await supabaseAdmin.auth.admin.createUser({
-      email: tempEmail,
-      email_confirm: true,
-      password: Math.random().toString(36).slice(-10) + 'A1!',
-      app_metadata: { is_mailed: true, invite_slug: slug }
-    });
-
-    if (userError) {
-      redirect(`/dashboard/admin/invite?error=${encodeURIComponent('Auth Error: ' + userError.message)}`);
-    }
-
-    const userId = userData.user.id;
-
-    // 2. Create Restaurant Record
-    const { error: restError } = await supabaseAdmin.from('restaurants').insert({
-      id: userId,
-      business_name: businessName,
-      google_place_id: googlePlaceId,
-      ambiance_context: description,
-      menu_context: menuContext,
-      subscription_status: 'trialing' // Pre-activated trial
-    });
-
-    if (restError) {
-      // Rollback user creation
-      await supabaseAdmin.auth.admin.deleteUser(userId);
-      redirect(`/dashboard/admin/invite?error=${encodeURIComponent('Database Error: ' + restError.message)}`);
-    }
-
-    // Redirect to success state - USE USER ID AS SLUG FOR 100% RELIABILITY
-    redirect(`/dashboard/admin/invite?success=true&slug=${userId}&businessName=${encodeURIComponent(businessName)}`);
   }
 
   return (
