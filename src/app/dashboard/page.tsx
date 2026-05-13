@@ -19,6 +19,7 @@ export default async function DashboardAnalytics() {
 
   const businessName = restaurant?.business_name || 'your restaurant';
   const isTrial = restaurant?.subscription_status === 'trialing';
+  const isMailed = user.app_metadata?.is_mailed === true;
 
   // Fetch real analytics events
   const { data: events } = await supabase
@@ -64,7 +65,31 @@ export default async function DashboardAnalytics() {
         </div>
       </div>
 
-      {isTrial && (
+      {/* Onboarding Logic */}
+      {isMailed ? (
+        <div className="mb-8 p-6 bg-indigo-600/10 border border-indigo-500/20 rounded-2xl flex items-start gap-4">
+          <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
+             <QrCode size={20} className="text-indigo-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">Your StarPlated system is active and ready.</h3>
+            <p className="text-sm text-slate-400 mt-1">
+              Place your included table tents on tables and start collecting reviews today. We've pre-configured everything for you.
+            </p>
+          </div>
+        </div>
+      ) : uniqueScans === 0 ? (
+        <div className="mb-8 p-6 bg-white/[0.02] border border-white/5 rounded-2xl">
+          <h3 className="text-lg font-bold text-white mb-4">Onboarding Checklist</h3>
+          <div className="space-y-3">
+            <ChecklistItem text="Add restaurant details" href="/dashboard/settings" isDone={!!restaurant?.ambiance_context} />
+            <ChecklistItem text="Connect Google Place ID" href="/dashboard/settings" isDone={!!restaurant?.google_place_id} />
+            <ChecklistItem text="Generate QR code" href="/dashboard/qr" isDone={true} />
+            <ChecklistItem text="Download table tents" href="/dashboard/qr" isDone={false} />
+            <ChecklistItem text="Start collecting reviews" href="#" isDone={uniqueScans > 0} />
+          </div>
+        </div>
+      ) : isTrial && (
         <div className="mb-8 p-6 bg-[#fbbc04]/10 border border-[#fbbc04]/20 rounded-2xl flex items-start gap-4">
           <div className="w-10 h-10 rounded-xl bg-[#fbbc04]/20 flex items-center justify-center shrink-0">
              <TrendingUp size={20} className="text-[#fbbc04]" />
@@ -145,6 +170,22 @@ function InsightItem({ title, value, detail }: { title: string, value: string, d
       <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">{title}</p>
       <p className="text-lg font-medium text-white mb-1">{value}</p>
       <p className="text-xs text-slate-600">{detail}</p>
+    </div>
+  );
+}
+
+function ChecklistItem({ text, href, isDone }: { text: string, href: string, isDone: boolean }) {
+  return (
+    <div className="flex items-center justify-between p-3 bg-black/20 rounded-xl border border-white/5">
+      <div className="flex items-center gap-3">
+        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isDone ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-slate-500'}`}>
+          {isDone ? <Star size={12} fill="currentColor" /> : <div className="w-2 h-2 rounded-full bg-slate-500" />}
+        </div>
+        <span className={`text-sm ${isDone ? 'text-slate-300 line-through' : 'text-white font-medium'}`}>{text}</span>
+      </div>
+      <a href={href} className="text-xs font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-wider">
+        {isDone ? 'Done' : 'Go'}
+      </a>
     </div>
   );
 }

@@ -35,7 +35,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   }
 
   const businessName = restaurant?.business_name || 'My Restaurant';
-  const isSubscribed = (restaurant?.subscription_status === 'active' || restaurant?.subscription_status === 'trialing') && !!restaurant?.stripe_customer_id;
+  const isMailed = user.app_metadata?.is_mailed === true;
+  const isSubscribed = isMailed || ((restaurant?.subscription_status === 'active' || restaurant?.subscription_status === 'trialing') && !!restaurant?.stripe_customer_id);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 flex overflow-hidden">
