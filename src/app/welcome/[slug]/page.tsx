@@ -36,16 +36,22 @@ async function activateInvite(formData: FormData) {
 
   // 3. Redirect to action_link which will authenticate and send to site URL
   let actionLink = linkData.properties.action_link;
-  const urlObj = new URL(actionLink);
   
   // Get protocol and host dynamically for local/prod support
   const headersList = await headers();
   const host = headersList.get('host') || 'starplated.com';
   const protocol = host.includes('localhost') ? 'http' : 'https';
+  const baseUrl = `${protocol}://${host}`;
+
+  // FORCE: If the magic link contains localhost but we are on prod, swap it out
+  if (!host.includes('localhost') && actionLink.includes('localhost')) {
+    actionLink = actionLink.replace(/http:\/\/localhost:\d+/, baseUrl);
+  }
+
+  const urlObj = new URL(actionLink);
   
   // Use a clean redirect_to parameter to force dashboard entry
-  const dashboardUrl = `${protocol}://${host}/dashboard`;
-  urlObj.searchParams.set('redirect_to', dashboardUrl);
+  urlObj.searchParams.set('redirect_to', `${baseUrl}/dashboard`);
 
   redirect(urlObj.toString());
 }
