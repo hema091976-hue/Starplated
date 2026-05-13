@@ -50,8 +50,8 @@ async function activateInvite(formData: FormData) {
 
   const urlObj = new URL(actionLink);
   
-  // Use a clean redirect_to parameter to force dashboard entry
-  urlObj.searchParams.set('redirect_to', `${baseUrl}/dashboard`);
+  // Use a clean redirect_to parameter to force dashboard entry and clear old sessions
+  urlObj.searchParams.set('redirect_to', `${baseUrl}/dashboard?refresh=true`);
 
   redirect(urlObj.toString());
 }
