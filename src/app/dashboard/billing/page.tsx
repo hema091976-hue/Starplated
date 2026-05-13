@@ -23,14 +23,14 @@ export default async function BillingPage() {
   const PRICE_ID = 'price_1TU65iRifscVHy5BMVW3nh8V';
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
+    <div className="p-4 md:p-8 max-w-4xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white tracking-tight">Billing</h1>
         <p className="text-slate-400 mt-1">Manage your subscription and billing details.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-8 flex flex-col">
+        <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 md:p-8 flex flex-col">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-3 bg-indigo-600/20 rounded-xl">
               <CreditCard className="text-indigo-400" />

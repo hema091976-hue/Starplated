@@ -73,7 +73,7 @@ export function SettingsForm({ initialData }: { initialData: any }) {
       <form action={handleAction} className="space-y-8">
         
         {/* Business Profile Card */}
-        <div className="bg-[#0F172A]/50 border border-white/5 rounded-[24px] p-8 shadow-xl backdrop-blur-sm">
+        <div className="bg-[#0F172A]/50 border border-white/5 rounded-[24px] p-5 md:p-8 shadow-xl backdrop-blur-sm">
           <h2 className="text-xl font-bold text-white mb-8 flex items-center gap-2">
             Business Profile
           </h2>
@@ -101,7 +101,7 @@ export function SettingsForm({ initialData }: { initialData: any }) {
             {/* Restaurant Logo Upload */}
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-3">Restaurant Logo</label>
-              <div className="flex items-center gap-8 p-6 bg-[#020617]/40 border border-white/5 rounded-[20px]">
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8 p-5 md:p-6 bg-[#020617]/40 border border-white/5 rounded-[20px]">
                 <div className="w-24 h-24 bg-[#0F172A] rounded-full overflow-hidden border-2 border-white/10 flex items-center justify-center shrink-0 shadow-inner">
                   {initialData?.logo_url ? (
                     <img src={initialData.logo_url} alt="Logo" className="w-full h-full object-cover" />
@@ -138,7 +138,7 @@ export function SettingsForm({ initialData }: { initialData: any }) {
 
             {/* Google Place ID */}
             <div>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2 sm:gap-0">
                 <label className="block text-sm font-medium text-slate-300" htmlFor="google_place_id">Google Place ID</label>
                 <a 
                   href="https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder" 
@@ -174,7 +174,7 @@ export function SettingsForm({ initialData }: { initialData: any }) {
         </div>
 
         {/* Ambiance Card */}
-        <div className="bg-[#0F172A]/50 border border-white/5 rounded-[24px] p-8 shadow-xl backdrop-blur-sm">
+        <div className="bg-[#0F172A]/50 border border-white/5 rounded-[24px] p-5 md:p-8 shadow-xl backdrop-blur-sm">
           <h2 className="text-xl font-bold text-white mb-2">Ambiance & Vibe</h2>
           <p className="text-sm text-slate-400 mb-8">Describe your restaurant's atmosphere, style, and what makes the experience special.</p>
           
@@ -187,7 +187,7 @@ export function SettingsForm({ initialData }: { initialData: any }) {
         </div>
 
         {/* Menu Items Card */}
-        <div className="bg-[#0F172A]/50 border border-white/5 rounded-[24px] p-8 shadow-xl backdrop-blur-sm">
+        <div className="bg-[#0F172A]/50 border border-white/5 rounded-[24px] p-5 md:p-8 shadow-xl backdrop-blur-sm">
           <h2 className="text-xl font-bold text-white mb-2">Menu Items & Signature Dishes</h2>
           <p className="text-sm text-slate-400 mb-8">List your key dishes, drinks, and specials. The AI will mention these by name in reviews.</p>
           
@@ -207,11 +207,11 @@ export function SettingsForm({ initialData }: { initialData: any }) {
         </div>
 
         {/* Save Button Bar */}
-        <div className="sticky bottom-8 z-10 pt-4">
+        <div className="sticky bottom-4 md:bottom-8 z-10 pt-4">
           <button 
             type="submit"
             disabled={isSaving}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.1em] py-5 px-8 rounded-2xl transition-all shadow-2xl shadow-indigo-600/40 flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]"
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.1em] py-4 md:py-5 px-4 md:px-8 rounded-2xl transition-all shadow-2xl shadow-indigo-600/40 flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98] text-sm md:text-base"
           >
             {isSaved ? (
               <><CheckCircle2 size={24} /> Settings Saved Successfully</>

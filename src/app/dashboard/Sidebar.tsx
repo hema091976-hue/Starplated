@@ -1,12 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Settings, QrCode, LogOut, Store, CreditCard, Lock } from 'lucide-react';
+import { LayoutDashboard, Settings, QrCode, LogOut, Store, CreditCard, Lock, Menu, X } from 'lucide-react';
 import { signOut } from './actions';
 
 export function Sidebar({ businessName, isSubscribed }: { businessName: string, isSubscribed: boolean }) {
   const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
     { name: 'Growth Overview', href: '/dashboard', icon: LayoutDashboard, protected: true },
@@ -16,15 +18,42 @@ export function Sidebar({ businessName, isSubscribed }: { businessName: string, 
   ];
 
   return (
-    <aside className="w-64 border-r border-white/5 bg-[#001d3d] flex flex-col fixed inset-y-0 z-20">
-      <div className="h-20 flex items-center px-6 border-b border-white/5">
+    <>
+      {/* Mobile Top Bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#001d3d] border-b border-white/5 z-30 flex items-center justify-between px-4">
         <div className="flex items-center gap-3 font-bold text-lg">
-          <div className="w-10 h-10 relative shrink-0">
+          <div className="w-8 h-8 relative shrink-0">
              <img src="/logo.png" alt="StarPlated" className="w-full h-full object-contain" />
           </div>
           <span className="truncate text-white text-sm uppercase tracking-wide">Dashboard</span>
         </div>
+        <button onClick={() => setIsOpen(!isOpen)} className="text-slate-300 hover:text-white p-2">
+          {isOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
       </div>
+
+      {/* Overlay for mobile */}
+      {isOpen && (
+        <div 
+          className="md:hidden fixed inset-0 bg-black/60 z-20 backdrop-blur-sm"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-30 w-64 bg-[#001d3d] border-r border-white/5 flex flex-col transition-transform duration-300 ease-in-out
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'} 
+        md:translate-x-0
+      `}>
+        <div className="h-20 flex items-center px-6 border-b border-white/5">
+          <div className="flex items-center gap-3 font-bold text-lg">
+            <div className="w-10 h-10 relative shrink-0">
+               <img src="/logo.png" alt="StarPlated" className="w-full h-full object-contain" />
+            </div>
+            <span className="truncate text-white text-sm uppercase tracking-wide">Dashboard</span>
+          </div>
+        </div>
       
       <div className="p-4 flex-1">
         <div className="text-xs font-bold text-[#fbbc04]/60 uppercase tracking-widest mb-6 px-3">Main Menu</div>
@@ -67,5 +96,6 @@ export function Sidebar({ businessName, isSubscribed }: { businessName: string, 
         </form>
       </div>
     </aside>
+    </>
   );
 }

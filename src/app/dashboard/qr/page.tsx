@@ -31,15 +31,15 @@ export default async function QRPage() {
   const reviewUrl = `${baseUrl}/${user.id}/review`;
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <div className="mb-8 flex justify-between items-center">
+    <div className="p-4 md:p-8 max-w-4xl mx-auto">
+      <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">QR Codes</h1>
           <p className="text-slate-400 mt-1">Download and print your custom QR codes for your tables.</p>
         </div>
-        <div className="text-right">
+        <div className="text-left md:text-right">
           <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Target URL</p>
-          <p className="text-xs text-indigo-400 font-mono bg-indigo-500/5 px-2 py-1 rounded border border-indigo-500/10 truncate max-w-[200px]">
+          <p className="text-xs text-indigo-400 font-mono bg-indigo-500/5 px-2 py-1 rounded border border-indigo-500/10 truncate max-w-[200px] md:max-w-[250px]">
             {reviewUrl}
           </p>
         </div>

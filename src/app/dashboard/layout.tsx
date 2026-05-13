@@ -40,7 +40,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50 flex overflow-hidden">
       <Sidebar businessName={businessName} isSubscribed={isSubscribed} />
-      <main className="flex-1 ml-64 bg-slate-950 relative h-screen">
+      <main className="flex-1 w-full md:ml-64 pt-16 md:pt-0 bg-slate-950 relative h-screen overflow-y-auto">
         <TrialGate isSubscribed={isSubscribed}>
           {children}
         </TrialGate>
