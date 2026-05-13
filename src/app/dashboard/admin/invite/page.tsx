@@ -15,6 +15,27 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
     redirect('/dashboard');
   }
 
+  const supabaseAdmin = createSupabaseAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  // Fetch all provisioned restaurants
+  const { data: allRestaurants } = await supabaseAdmin
+    .from('restaurants')
+    .select('id, business_name, created_at, menu_context');
+
+  // Fetch users to get the invite slugs from metadata
+  const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
+  
+  const provisionedList = allRestaurants?.map(rest => {
+    const owner = users.find(u => u.id === rest.id);
+    return {
+      ...rest,
+      slug: owner?.user_metadata?.invite_slug || owner?.app_metadata?.invite_slug || rest.business_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
+    };
+  }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) || [];
+
   async function createMailedRestaurant(formData: FormData) {
     'use server';
     
@@ -186,6 +207,41 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
           </div>
         </form>
       )}
+
+      {/* Provisioned Restaurants List */}
+      <div className="mt-16">
+        <h2 className="text-2xl font-bold text-white mb-6">Recently Provisioned Restaurants</h2>
+        <div className="space-y-4">
+          {provisionedList.length === 0 ? (
+            <p className="text-slate-500 italic">No restaurants provisioned yet.</p>
+          ) : (
+            provisionedList.map((rest) => (
+              <div key={rest.id} className="bg-white/[0.02] border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold text-white">{rest.business_name}</h3>
+                  <p className="text-xs text-slate-500 font-mono mt-1">starplated.com/welcome/{rest.slug}</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <a 
+                    href={`/welcome/${rest.slug}`} 
+                    target="_blank"
+                    className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium text-white transition-colors"
+                  >
+                    Test Flow
+                  </a>
+                  <a 
+                    href={`/dashboard/admin/invite?success=true&slug=${rest.slug}&businessName=${encodeURIComponent(rest.business_name)}`}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-medium text-white transition-colors flex items-center gap-2"
+                  >
+                    <Download size={14} />
+                    QR Code
+                  </a>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
