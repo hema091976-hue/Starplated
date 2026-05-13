@@ -33,10 +33,10 @@ function SubmitButton() {
 
 function QRModal({ restaurant, baseUrl, onClose }: { restaurant: Restaurant; baseUrl: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
-  const welcomeUrl = `${baseUrl}/welcome/${restaurant.id}`;
+  const reviewUrl = `${baseUrl}/${restaurant.id}/review`;  // ← Direct customer review URL
 
   const copyUrl = () => {
-    navigator.clipboard.writeText(welcomeUrl);
+    navigator.clipboard.writeText(reviewUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -69,18 +69,19 @@ function QRModal({ restaurant, baseUrl, onClose }: { restaurant: Restaurant; bas
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-lg font-bold text-white">{restaurant.business_name}</h3>
-            <p className="text-xs text-slate-500 mt-0.5">Activation QR Code</p>
+            <p className="text-xs text-slate-500 mt-0.5">Customer Review QR Code</p>
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors p-1">
             <X size={20} />
           </button>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl flex items-center justify-center mb-6 shadow-lg">
-          <QRCodeSVG id="admin-qr-code" value={welcomeUrl} size={200} level="H" includeMargin={false} />
+        <div className="bg-white p-5 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+          <QRCodeSVG id="admin-qr-code" value={reviewUrl} size={200} level="H" includeMargin={false} />
         </div>
 
-        <p className="text-xs text-slate-500 font-mono text-center break-all mb-6 px-2">{welcomeUrl}</p>
+        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold text-center mb-1">Scan to leave a review</p>
+        <p className="text-xs text-slate-600 font-mono text-center break-all mb-6 px-2">{reviewUrl}</p>
 
         <div className="grid grid-cols-2 gap-3">
           <button onClick={downloadQR} className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5 px-4 rounded-xl transition-colors text-sm">
@@ -300,12 +301,12 @@ export function AdminDashboardClient({
 
                 <div className="flex items-center gap-2 flex-wrap">
                   <a
-                    href={`/welcome/${rest.id}`}
+                    href={`/${rest.id}/review`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1.5 px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium text-white transition-colors"
                   >
-                    <ExternalLink size={14} /> Test Flow
+                    <ExternalLink size={14} /> Test Review
                   </a>
                   <button
                     onClick={() => setQrRestaurant(rest)}
