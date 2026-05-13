@@ -314,7 +314,6 @@ function AddRestaurantModal({ onClose, onSuccess }: { onClose: () => void; onSuc
   );
 }
 
-}
 
 export function AdminDashboardClient({
   restaurants: initialRestaurants,
