@@ -83,7 +83,38 @@ function QRModal({ restaurant, baseUrl, onClose }: { restaurant: Restaurant; bas
   );
 }
 
-function AddRestaurantModal({ createAction, onClose }: { createAction: (f: FormData) => Promise<void>; onClose: () => void }) {
+function AddRestaurantModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (id: string, name: string) => void }) {
+  const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setFormError('');
+    const fd = new FormData(e.currentTarget);
+    const body = {
+      businessName: fd.get('business_name'),
+      tempEmail: fd.get('temp_email'),
+      googlePlaceId: fd.get('google_place_id'),
+      description: fd.get('description'),
+      menuContext: fd.get('menu_context'),
+    };
+    try {
+      const res = await fetch('/api/admin/create-restaurant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) { setFormError(data.error || 'Something went wrong.'); return; }
+      onSuccess(data.id, data.businessName);
+    } catch (err: any) {
+      setFormError(err.message || 'Network error.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-[#0f1a2e] border border-white/10 rounded-3xl p-8 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
@@ -95,10 +126,10 @@ function AddRestaurantModal({ createAction, onClose }: { createAction: (f: FormD
           <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors p-1"><X size={20} /></button>
         </div>
 
-        {error && (
+        {formError && (
           <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-start gap-2">
             <AlertCircle size={16} className="text-red-400 mt-0.5 shrink-0" />
-            <p className="text-red-400 text-sm">{error}</p>
+            <p className="text-red-400 text-sm">{formError}</p>
           </div>
         )}
 
