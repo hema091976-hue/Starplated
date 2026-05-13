@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { Building2, Mail, Link as LinkIcon, Edit, Upload, CheckCircle2 } from 'lucide-react';
 import { headers } from 'next/headers';
 
-export default async function AdminInvitePage({ searchParams }: { searchParams: { success?: string, slug?: string } }) {
+export default async function AdminInvitePage({ searchParams }: { searchParams: { success?: string, slug?: string, error?: string } }) {
   // We should ideally protect this with an admin check, but for this exercise we assume it's secure or accessed by admin.
 
   async function createMailedRestaurant(formData: FormData) {
@@ -30,7 +30,7 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
     });
 
     if (userError) {
-      throw new Error(userError.message);
+      redirect(`/dashboard/admin/invite?error=${encodeURIComponent('Auth Error: ' + userError.message)}`);
     }
 
     const userId = userData.user.id;
@@ -47,7 +47,7 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
     if (restError) {
       // Rollback user creation
       await supabaseAdmin.auth.admin.deleteUser(userId);
-      throw new Error(restError.message);
+      redirect(`/dashboard/admin/invite?error=${encodeURIComponent('Database Error: ' + restError.message)}`);
     }
 
     // Redirect to success state
@@ -60,6 +60,12 @@ export default async function AdminInvitePage({ searchParams }: { searchParams: 
         <h1 className="text-3xl font-bold text-white tracking-tight">Generate Mailed Invite</h1>
         <p className="text-slate-400 mt-1">Pre-provision a restaurant account for physical outreach.</p>
       </div>
+
+      {searchParams.error && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+          <p className="text-red-400 text-sm font-medium">{searchParams.error}</p>
+        </div>
+      )}
 
       {searchParams.success ? (
         <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-8 text-center animate-in fade-in slide-in-from-bottom-4">
