@@ -54,6 +54,15 @@ async function activateInvite(formData: FormData) {
 }
 
 export default async function WelcomePage({ params }: { params: { slug: string } }) {
+  const headerList = await headers();
+  const fullUrl = headerList.get('referer') || '';
+  
+  // Fallback for empty slug param (Next.js Edge bug)
+  let activeSlug = params.slug;
+  if (!activeSlug && fullUrl.includes('/welcome/')) {
+    activeSlug = fullUrl.split('/welcome/')[1].split('?')[0].split('#')[0];
+  }
+
   const supabaseAdmin = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -72,19 +81,15 @@ export default async function WelcomePage({ params }: { params: { slug: string }
   
   const matchedRestaurant = restaurants?.find(r => {
     const rSlug = slugify(r.business_name);
-    console.log(`Comparing "${params.slug}" with "${rSlug}" (from ${r.business_name})`);
-    return rSlug === params.slug;
+    return rSlug === activeSlug;
   });
   
   if (!matchedRestaurant) {
-    console.error('Restaurant not found for slug:', params.slug);
-    console.log('Available restaurants:', restaurants?.map(r => `${r.business_name} -> ${slugify(r.business_name)}`));
-    
     return (
       <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-white mb-4">Restaurant Not Found</h1>
-          <p className="text-slate-400 mb-8">We couldn't find a review page for "{params.slug}".</p>
+          <p className="text-slate-400 mb-8">We couldn't find a review page for "{activeSlug || params.slug}".</p>
           <a href="/" className="text-indigo-400 underline">Return to Home</a>
         </div>
       </div>
