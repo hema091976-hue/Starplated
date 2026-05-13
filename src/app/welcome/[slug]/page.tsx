@@ -54,12 +54,13 @@ async function activateInvite(formData: FormData) {
 }
 
 export default async function WelcomePage({ params }: { params: { slug: string } }) {
-  const supabase = await createClient();
+  const supabaseAdmin = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
   
-  // Find restaurant by matching slug
-  // In a large prod app we'd add an `invite_slug` column to restaurants, 
-  // but this works for our purposes without schema changes.
-  const { data: restaurants } = await supabase.from('restaurants').select('id, business_name');
+  // Find restaurant by matching slug using Admin client to bypass RLS
+  const { data: restaurants } = await supabaseAdmin.from('restaurants').select('id, business_name');
   
   const slugify = (name: string) => (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
   
