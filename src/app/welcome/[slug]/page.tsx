@@ -60,14 +60,35 @@ export default async function WelcomePage({ params }: { params: { slug: string }
   );
   
   // Find restaurant by matching slug using Admin client to bypass RLS
-  const { data: restaurants } = await supabaseAdmin.from('restaurants').select('id, business_name');
+  const { data: restaurants, error: fetchError } = await supabaseAdmin.from('restaurants').select('id, business_name');
   
-  const slugify = (name: string) => (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+  const slugify = (name: string) => (name || '').toLowerCase()
+    .trim()
+    .replace(/\s+/g, '-')           // Replace spaces with -
+    .replace(/[^a-z0-9\-]+/g, '')   // Remove all non-word chars
+    .replace(/\-\-+/g, '-')         // Replace multiple - with single -
+    .replace(/^-+/, '')             // Trim - from start
+    .replace(/-+$/, '');            // Trim - from end
   
-  const matchedRestaurant = restaurants?.find(r => slugify(r.business_name) === params.slug);
+  const matchedRestaurant = restaurants?.find(r => {
+    const rSlug = slugify(r.business_name);
+    console.log(`Comparing "${params.slug}" with "${rSlug}" (from ${r.business_name})`);
+    return rSlug === params.slug;
+  });
   
   if (!matchedRestaurant) {
-    notFound();
+    console.error('Restaurant not found for slug:', params.slug);
+    console.log('Available restaurants:', restaurants?.map(r => `${r.business_name} -> ${slugify(r.business_name)}`));
+    
+    return (
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-white mb-4">Restaurant Not Found</h1>
+          <p className="text-slate-400 mb-8">We couldn't find a review page for "{params.slug}".</p>
+          <a href="/" className="text-indigo-400 underline">Return to Home</a>
+        </div>
+      </div>
+    );
   }
 
   return (
