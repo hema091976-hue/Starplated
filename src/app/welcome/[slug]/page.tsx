@@ -53,7 +53,8 @@ async function activateInvite(formData: FormData) {
   redirect(urlObj.toString());
 }
 
-export default async function WelcomePage({ params }: { params: { slug: string } }) {
+export default async function WelcomePage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const headerList = await headers();
   const fullUrl = headerList.get('referer') || '';
   
