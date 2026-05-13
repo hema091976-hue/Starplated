@@ -5,7 +5,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import {
   Building2, Mail, Link as LinkIcon, Edit, Utensils,
   Download, ExternalLink, Plus, X, CheckCircle2,
-  Sparkles, Users, AlertCircle, Loader2, QrCode, Copy, Check
+  Sparkles, Users, AlertCircle, Loader2, QrCode, Copy, Check, ChevronDown
 } from 'lucide-react';
 
 type Restaurant = {
@@ -17,6 +17,55 @@ type Restaurant = {
   isMailed: boolean;
   email: string;
 };
+
+const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  trialing:  { label: 'Trialing',  color: 'text-indigo-400',  bg: 'bg-indigo-500/20 border-indigo-500/30' },
+  active:    { label: 'Active',    color: 'text-emerald-400', bg: 'bg-emerald-500/20 border-emerald-500/30' },
+  canceled:  { label: 'Canceled',  color: 'text-red-400',     bg: 'bg-red-500/20 border-red-500/30' },
+  past_due:  { label: 'Past Due',  color: 'text-amber-400',   bg: 'bg-amber-500/20 border-amber-500/30' },
+  organic:   { label: 'Organic',   color: 'text-slate-400',   bg: 'bg-white/5 border-white/10' },
+};
+
+function StatusSelector({ restaurantId, initialStatus }: { restaurantId: string; initialStatus: string }) {
+  const key = initialStatus || 'organic';
+  const [status, setStatus] = useState(key);
+  const [saving, setSaving] = useState(false);
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.organic;
+
+  async function handleChange(newStatus: string) {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/admin/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurantId, status: newStatus }),
+      });
+      if (res.ok) setStatus(newStatus);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="relative">
+      <select
+        value={status}
+        onChange={e => handleChange(e.target.value)}
+        disabled={saving}
+        className={`text-[11px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full border cursor-pointer appearance-none pr-6 ${cfg.bg} ${cfg.color} focus:outline-none disabled:opacity-50`}
+      >
+        <option value="trialing">Trialing</option>
+        <option value="active">Active</option>
+        <option value="canceled">Canceled</option>
+        <option value="past_due">Past Due</option>
+      </select>
+      {saving
+        ? <Loader2 size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 animate-spin text-slate-400" />
+        : <ChevronDown size={10} className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400" />
+      }
+    </div>
+  );
+}
 
 function QRModal({ restaurant, baseUrl, onClose }: { restaurant: Restaurant; baseUrl: string; onClose: () => void }) {
   const [copied, setCopied] = useState(false);
@@ -305,19 +354,18 @@ export function AdminDashboardClient({
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-base font-bold text-white">{rest.business_name}</h3>
-                      <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full ${
-                        rest.subscription_status === 'active' ? 'bg-emerald-500/20 text-emerald-400' :
-                        rest.isMailed ? 'bg-indigo-500/20 text-indigo-400' :
-                        'bg-white/5 text-slate-500'
-                      }`}>
-                        {rest.subscription_status === 'active' ? 'Active' : rest.isMailed ? 'Mailed' : 'Organic'}
-                      </span>
+                      {rest.isMailed && (
+                        <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                          Mailed
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">{rest.email}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
+                  <StatusSelector restaurantId={rest.id} initialStatus={rest.subscription_status || 'trialing'} />
                   <a
                     href={`/${rest.id}/review`}
                     target="_blank"
